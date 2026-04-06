@@ -14,7 +14,9 @@ const mockRuntime: CollectorState = {
   consecutiveFailures: 0,
   endpoint: "https://api.anthropic.com/api/oauth/usage",
   authMode: "bearer",
-  pollIntervalMs: 300000,
+  currentTier: "idle" as const,
+  nextPollAt: null,
+  consecutiveNoChange: 0,
 };
 
 const mockStorage = { path: "data/usage.db", sizeBytes: 4096, totalSnapshots: 2 };
@@ -52,45 +54,71 @@ describe("buildDashboardData", () => {
         timestamp: "2026-04-06T10:00:00Z",
         five_hour_utilization: 25,
         five_hour_resets_at: "2026-04-06T15:00:00Z",
+        seven_day_utilization: 40,
+        seven_day_resets_at: "2026-04-13T10:00:00Z",
       }),
     ];
 
     const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
     assert.equal(result.current?.fiveHour?.utilization, 25);
+    assert.equal(result.current?.sevenDay?.utilization, 40);
   });
 
-  it("computes hourly activity from positive deltas", () => {
+  it("computes positive delta within same window (same resets_at)", () => {
     const snapshots = [
       makeSnapshot({
+        id: 1,
         timestamp: "2026-04-06T10:00:00Z",
         five_hour_utilization: 10,
         five_hour_resets_at: "2026-04-06T15:00:00Z",
       }),
       makeSnapshot({
         id: 2,
-        timestamp: "2026-04-06T11:00:00Z",
+        timestamp: "2026-04-06T10:05:00Z",
         five_hour_utilization: 22,
-        five_hour_resets_at: "2026-04-06T16:00:00Z",
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
       }),
     ];
 
     const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
-    const hour = new Date("2026-04-06T11:00:00Z").getHours();
+    const hour = new Date("2026-04-06T10:05:00Z").getHours();
     assert.equal(result.activity.hourlyBars[hour].totalDelta, 12);
   });
 
-  it("ignores negative deltas (usage resets)", () => {
+  it("detects window reset (different resets_at) and uses current as delta", () => {
     const snapshots = [
       makeSnapshot({
+        id: 1,
         timestamp: "2026-04-06T10:00:00Z",
         five_hour_utilization: 80,
         five_hour_resets_at: "2026-04-06T15:00:00Z",
       }),
       makeSnapshot({
         id: 2,
-        timestamp: "2026-04-06T11:00:00Z",
+        timestamp: "2026-04-06T10:05:00Z",
         five_hour_utilization: 5,
-        five_hour_resets_at: "2026-04-06T16:00:00Z",
+        five_hour_resets_at: "2026-04-06T15:05:00Z",
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    const hour = new Date("2026-04-06T10:05:00Z").getHours();
+    assert.equal(result.activity.hourlyBars[hour].totalDelta, 5);
+  });
+
+  it("returns delta 0 when current utilization is null after reset", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: 50,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        five_hour_utilization: null,
+        five_hour_resets_at: null,
       }),
     ];
 
@@ -99,53 +127,45 @@ describe("buildDashboardData", () => {
     assert.equal(totalDelta, 0);
   });
 
-  it("compensates for dropoff using 5h-old snapshots", () => {
-    // Simulate: at T+0h, utilization was 20% (this will drop off at T+5h)
-    // At T+5h, utilization dropped from 50% to 45% even though user was active
-    // The 5h-old reference shows 20%→15%, meaning 5% dropped off
-    // So estimated new usage = (45-50) + (20-15) = -5 + 5 = 0...
-    // Better example: at T+5h util goes 50%→48%, 5h ago went 20%→12% (8% dropped off)
-    // new_usage = (48-50) + (20-12) = -2 + 8 = 6%
+  it("uses current value as delta when previous utilization is null", () => {
     const snapshots = [
-      // 5 hours ago: two snapshots showing what will drop off
       makeSnapshot({
         id: 1,
-        timestamp: "2026-04-06T05:00:00Z",
-        five_hour_utilization: 20,
-        five_hour_resets_at: "2026-04-06T10:00:00Z",
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: null,
+        five_hour_resets_at: null,
       }),
       makeSnapshot({
         id: 2,
-        timestamp: "2026-04-06T05:05:00Z",
-        five_hour_utilization: 12,
-        five_hour_resets_at: "2026-04-06T10:05:00Z",
-      }),
-      // Now: utilization appears to decrease, but user was actually active
-      makeSnapshot({
-        id: 3,
-        timestamp: "2026-04-06T10:00:00Z",
-        five_hour_utilization: 50,
-        five_hour_resets_at: "2026-04-06T15:00:00Z",
-      }),
-      makeSnapshot({
-        id: 4,
         timestamp: "2026-04-06T10:05:00Z",
-        five_hour_utilization: 48,
+        five_hour_utilization: 15,
         five_hour_resets_at: "2026-04-06T15:05:00Z",
       }),
     ];
 
     const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
-    const hour10 = new Date("2026-04-06T10:05:00Z").getHours();
-    const hour5 = new Date("2026-04-06T05:05:00Z").getHours();
-    // Interval snap3→snap4: raw delta=-2, dropoff=20-12=8, new_usage=6
-    // Interval snap2→snap3: raw delta=50-12=38 (positive, no 5h ref → fallback)
-    // Interval snap1→snap2: raw delta=12-20=-8 → 0
-    // Total at hour10 = 38 + 6 = 44 (if both land on same hour)
-    // Just verify the compensation interval contributed > 0 when raw delta was negative
-    const totalActivity = result.activity.hourlyBars.reduce((s, b) => s + b.totalDelta, 0);
-    assert.ok(totalActivity > 0, "should detect activity even when raw delta is negative");
-    // The key assertion: hour10 has activity despite snap3→snap4 having negative raw delta
-    assert.ok(result.activity.hourlyBars[hour10].totalDelta > 0, "compensated delta should be positive");
+    const hour = new Date("2026-04-06T10:05:00Z").getHours();
+    assert.equal(result.activity.hourlyBars[hour].totalDelta, 15);
+  });
+
+  it("returns delta 0 when no change in same window", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: 30,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        five_hour_utilization: 30,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    const totalDelta = result.activity.hourlyBars.reduce((sum, b) => sum + b.totalDelta, 0);
+    assert.equal(totalDelta, 0);
   });
 });

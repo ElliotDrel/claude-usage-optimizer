@@ -50,71 +50,29 @@ function round2(n: number): number {
 }
 
 /**
- * Estimate actual new usage per interval by compensating for sliding window dropoff.
- *
- * The 5-hour utilization is a rolling window:
- *   U_now = U_prev - dropoff + new_usage
- *
- * So: new_usage = (U_now - U_prev) + dropoff
- *
- * We estimate dropoff by looking at what the utilization was ~5 hours ago
- * vs ~5h + one poll interval ago. The delta between those two snapshots
- * approximates what just fell off the trailing edge of the window.
- *
- * If we don't have data from 5h ago yet, we fall back to positive-delta only.
+ * Compute the usage delta between two snapshots for a given window.
+ * Uses resets_at to detect window boundaries:
+ * - Same window: delta = current - previous
+ * - Window reset: delta = current (it reset to 0, then grew to this)
+ * - Null utilization: delta = 0
  */
-const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
-
-function findClosestSnapshot(
-  snapshots: SnapshotRow[],
-  targetTime: number,
-  toleranceMs: number
-): SnapshotRow | null {
-  let best: SnapshotRow | null = null;
-  let bestDiff = Infinity;
-  for (const s of snapshots) {
-    const diff = Math.abs(new Date(s.timestamp).getTime() - targetTime);
-    if (diff < bestDiff && diff <= toleranceMs) {
-      best = s;
-      bestDiff = diff;
-    }
-  }
-  return best;
-}
-
-function estimateNewUsage(
+function computeDelta(
   prev: SnapshotRow,
   curr: SnapshotRow,
-  allOk: SnapshotRow[]
+  windowKey: "five_hour" | "seven_day"
 ): number {
-  const rawDelta = curr.five_hour_utilization! - prev.five_hour_utilization!;
+  const currUtil = curr[`${windowKey}_utilization`];
+  const prevUtil = prev[`${windowKey}_utilization`];
 
-  const currTime = new Date(curr.timestamp).getTime();
-  const prevTime = new Date(prev.timestamp).getTime();
-  const pollGap = currTime - prevTime;
+  if (currUtil == null) return 0;
+  if (prevUtil == null) return currUtil;
 
-  // Find snapshots from ~5 hours ago to estimate what dropped off
-  const tolerance = Math.max(pollGap * 1.5, 10 * 60 * 1000); // generous tolerance
-  const snap5hAgo = findClosestSnapshot(allOk, currTime - FIVE_HOURS_MS, tolerance);
-  const snap5hPrevAgo = findClosestSnapshot(allOk, prevTime - FIVE_HOURS_MS, tolerance);
+  const currReset = curr[`${windowKey}_resets_at`];
+  const prevReset = prev[`${windowKey}_resets_at`];
 
-  if (
-    snap5hAgo && snap5hPrevAgo &&
-    snap5hAgo.five_hour_utilization != null &&
-    snap5hPrevAgo.five_hour_utilization != null &&
-    snap5hAgo.id !== snap5hPrevAgo.id
-  ) {
-    // Dropoff ≈ usage that existed at (now - 5h) minus usage at (prev - 5h)
-    // This is what slid off the trailing edge between prev and curr polls
-    const dropoff = Math.max(
-      0,
-      snap5hPrevAgo.five_hour_utilization - snap5hAgo.five_hour_utilization
-    );
-    return Math.max(0, rawDelta + dropoff);
-  }
+  if (currReset !== prevReset) return currUtil;
 
-  // Fallback: no 5h-old data yet, use positive delta only
-  return Math.max(0, rawDelta);
+  return Math.max(0, currUtil - prevUtil);
 }
 
 function buildActivity(snapshots: SnapshotRow[]) {
@@ -137,10 +95,7 @@ function buildActivity(snapshots: SnapshotRow[]) {
     const prev = okSnapshots[i - 1];
     const curr = okSnapshots[i];
 
-    if (prev.five_hour_utilization == null || curr.five_hour_utilization == null)
-      continue;
-
-    const newUsage = estimateNewUsage(prev, curr, okSnapshots);
+    const newUsage = computeDelta(prev, curr, "five_hour");
     if (newUsage <= 0) continue;
 
     const ts = new Date(curr.timestamp);
