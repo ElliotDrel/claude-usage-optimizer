@@ -49,6 +49,11 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+function safeParseJson(raw: string | null): Record<string, unknown> | null {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 /**
  * Compute the usage delta between two snapshots for a given window.
  * Uses resets_at to detect window boundaries:
@@ -144,7 +149,7 @@ export function buildDashboardData(
               resetsAt: lastSuccess.seven_day_resets_at!,
             }
           : null,
-      rawJson: lastSuccess.raw_json ? JSON.parse(lastSuccess.raw_json) : null,
+      rawJson: safeParseJson(lastSuccess.raw_json),
     };
   }
 

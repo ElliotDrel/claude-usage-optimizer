@@ -179,6 +179,7 @@ export class UsageCollector {
   async pollOnce(): Promise<{ status: string; error?: string }> {
     if (!this.config.hasAuth) {
       const msg = "No auth configured. Set CLAUDE_BEARER_TOKEN or CLAUDE_SESSION_COOKIE.";
+      this.state.lastAttemptAt = new Date().toISOString();
       this.state.lastError = msg;
       this.state.consecutiveFailures++;
       insertSnapshot(this.config, {

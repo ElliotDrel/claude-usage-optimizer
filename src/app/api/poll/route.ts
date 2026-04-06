@@ -25,8 +25,5 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await collector.pollOnce();
-  if (result.status === "ok") {
-    collector.reschedule();
-  }
   return NextResponse.json({ ok: result.status === "ok", ...result });
 }
