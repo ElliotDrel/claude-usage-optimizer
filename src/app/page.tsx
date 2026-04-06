@@ -13,6 +13,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
+  const [pollCooldown, setPollCooldown] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -31,7 +32,14 @@ export default function DashboardPage() {
   const handlePoll = async () => {
     setPolling(true);
     try {
-      await fetch("/api/poll", { method: "POST" });
+      const res = await fetch("/api/poll", { method: "POST" });
+      const json = await res.json();
+      if (json.status === "cooldown") {
+        setPollCooldown(json.retryInSeconds);
+        setTimeout(() => setPollCooldown(null), json.retryInSeconds * 1000);
+      } else {
+        setPollCooldown(null);
+      }
       await fetchData();
     } finally {
       setPolling(false);
@@ -114,22 +122,22 @@ export default function DashboardPage() {
           <div className="flex flex-col items-end gap-3 shrink-0">
             <button
               onClick={handlePoll}
-              disabled={polling}
+              disabled={polling || pollCooldown !== null}
               className="group relative px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 fontFamily: "var(--font-mono)",
                 color: "var(--bg-base)",
-                background: polling ? "var(--text-tertiary)" : "var(--accent)",
-                boxShadow: polling ? "none" : "0 0 20px rgba(212, 160, 86, 0.2)",
+                background: polling || pollCooldown !== null ? "var(--text-tertiary)" : "var(--accent)",
+                boxShadow: polling || pollCooldown !== null ? "none" : "0 0 20px rgba(212, 160, 86, 0.2)",
               }}
               onMouseEnter={(e) => {
-                if (!polling) e.currentTarget.style.boxShadow = "0 0 30px rgba(212, 160, 86, 0.35)";
+                if (!polling && !pollCooldown) e.currentTarget.style.boxShadow = "0 0 30px rgba(212, 160, 86, 0.35)";
               }}
               onMouseLeave={(e) => {
-                if (!polling) e.currentTarget.style.boxShadow = "0 0 20px rgba(212, 160, 86, 0.2)";
+                if (!polling && !pollCooldown) e.currentTarget.style.boxShadow = "0 0 20px rgba(212, 160, 86, 0.2)";
               }}
             >
-              {polling ? "Polling..." : "Poll Now"}
+              {polling ? "Polling..." : pollCooldown ? `Wait ${pollCooldown}s` : "Poll Now"}
             </button>
             <StatusPill data={data} />
             {lastRefresh && (
@@ -201,7 +209,7 @@ export default function DashboardPage() {
           className="text-[10px] tracking-[0.3em] uppercase"
           style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
         >
-          Auto-refresh 15s
+          Auto-refresh 15s · Adaptive polling
         </p>
       </footer>
     </main>

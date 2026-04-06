@@ -3,6 +3,16 @@
 import type { DashboardData } from "@/lib/analysis";
 import { formatDistanceToNow } from "date-fns";
 
+function formatDelay(tier: string): string {
+  switch (tier) {
+    case "burst": return "30s";
+    case "active": return "1m";
+    case "light": return "2.5m";
+    case "idle": return "5m";
+    default: return "—";
+  }
+}
+
 function Metric({
   label,
   value,
@@ -68,9 +78,9 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
     ? formatDistanceToNow(new Date(runtime.lastSuccessAt), { addSuffix: true })
     : "Never";
 
-  const lastAttempt = runtime.lastAttemptAt
-    ? formatDistanceToNow(new Date(runtime.lastAttemptAt), { addSuffix: true })
-    : "Never";
+  const nextPoll = runtime.nextPollAt
+    ? formatDistanceToNow(new Date(runtime.nextPollAt), { addSuffix: true })
+    : "—";
 
   return (
     <div>
@@ -113,11 +123,11 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
         <Metric
           label="Tier"
           value={runtime.currentTier}
-          detail={`Attempt ${lastAttempt}`}
+          detail={formatDelay(runtime.currentTier)}
         />
         <Metric
-          label="Snapshots"
-          value={String(health.totalSnapshots)}
+          label="Next Poll"
+          value={nextPoll}
           detail={`${health.successCount} ok / ${health.errorCount} err`}
         />
         <Metric
