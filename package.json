@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "startup:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-startup.ps1",
+    "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",
     "lint": "eslint",
     "test": "npx tsx --test test/*.test.ts"
   },
@@ -26,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
