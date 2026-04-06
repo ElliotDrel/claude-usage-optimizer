@@ -19,34 +19,34 @@ describe("computeNextDelay", () => {
     assert.equal(result.delayMs, 5 * 60_000);
   });
 
-  it("steps up idle -> light when delta detected", () => {
+  it("jumps idle -> burst when delta detected", () => {
     const result = computeNextDelay(state(), { delta: 1, success: true });
-    assert.equal(result.currentTier, "light");
+    assert.equal(result.currentTier, "burst");
     assert.equal(result.consecutiveNoChange, 0);
-    assert.equal(result.delayMs, 2.5 * 60_000);
+    assert.equal(result.delayMs, 30_000);
   });
 
-  it("steps up light -> active when delta detected", () => {
+  it("jumps light -> burst when delta detected", () => {
     const result = computeNextDelay(
       state({ currentTier: "light" }),
       { delta: 1, success: true }
-    );
-    assert.equal(result.currentTier, "active");
-    assert.equal(result.delayMs, 60_000);
-  });
-
-  it("steps up active -> burst when delta >= 3", () => {
-    const result = computeNextDelay(
-      state({ currentTier: "active" }),
-      { delta: 3, success: true }
     );
     assert.equal(result.currentTier, "burst");
     assert.equal(result.delayMs, 30_000);
   });
 
-  it("does NOT jump idle -> burst (only steps one tier)", () => {
+  it("jumps active -> burst even for small deltas", () => {
+    const result = computeNextDelay(
+      state({ currentTier: "active" }),
+      { delta: 1, success: true }
+    );
+    assert.equal(result.currentTier, "burst");
+    assert.equal(result.delayMs, 30_000);
+  });
+
+  it("jumps idle -> burst even for large deltas", () => {
     const result = computeNextDelay(state(), { delta: 10, success: true });
-    assert.equal(result.currentTier, "light");
+    assert.equal(result.currentTier, "burst");
   });
 
   it("steps down one tier after 3 no-change polls", () => {

@@ -26,13 +26,6 @@ const TIER_DELAYS: Record<Tier, number> = {
   burst: 30_000, // 30 sec
 };
 
-const TIER_UP: Record<Tier, Tier | null> = {
-  idle: "light",
-  light: "active",
-  active: "burst",
-  burst: null,
-};
-
 const TIER_DOWN: Record<Tier, Tier | null> = {
   idle: null,
   light: "idle",
@@ -77,18 +70,9 @@ export function computeNextDelay(
       noChange = 0; // delta >= 2, stay at burst
     }
   } else if (delta > 0) {
-    // Delta detected - step up one tier
+    // Any detected usage jumps straight to burst so we capture short spikes.
     noChange = 0;
-
-    if (tier === "active" && delta >= 3) {
-      tier = "burst";
-    } else {
-      const up = TIER_UP[tier];
-      if (up && up !== "burst") {
-        tier = up;
-      }
-      // active with delta < 3: stay at active (can't go to burst)
-    }
+    tier = "burst";
   } else {
     // No change at non-burst tier
     noChange++;
