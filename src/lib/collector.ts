@@ -2,6 +2,7 @@ import type { Config } from "./config";
 import { explainAuthFailure, getAuthPreflightError } from "./auth-diagnostics";
 import { insertSnapshot } from "./db";
 import { normalizeUsagePayload } from "./normalize";
+import { computeUsageDelta } from "./usage-window";
 
 // --- Tier types and constants ---
 
@@ -258,20 +259,15 @@ export class UsageCollector {
         errorMessage: null,
       });
 
-      // Compute delta (same logic as analysis.ts computeDelta)
+      // Compute delta using normalized hour-aligned reset boundaries.
       const currentUtil = fiveHour?.utilization ?? null;
       const currentResetsAt = fiveHour?.resetsAt ?? null;
-      let delta = 0;
-      if (currentUtil != null && this.lastFiveHourUtil != null) {
-        if (currentResetsAt !== this.lastFiveHourResetsAt) {
-          // Window reset - delta is the full current value (it started from 0)
-          delta = currentUtil;
-        } else {
-          delta = Math.max(0, currentUtil - this.lastFiveHourUtil);
-        }
-      } else if (currentUtil != null && this.lastFiveHourUtil == null) {
-        delta = currentUtil;
-      }
+      const delta = computeUsageDelta(
+        this.lastFiveHourUtil,
+        currentUtil,
+        this.lastFiveHourResetsAt,
+        currentResetsAt
+      );
       this.lastFiveHourUtil = currentUtil;
       this.lastFiveHourResetsAt = currentResetsAt;
 

@@ -159,15 +159,25 @@ function buildUsageInsights(snapshots: SnapshotRow[]) {
     recordEvent(delta7d, "7D");
   }
 
+  const finalizedLargestDelta = largestDelta as {
+    delta: number;
+    at: string;
+    window: "5H" | "7D";
+  } | null;
+
+  let roundedLargestDelta: { delta: number; at: string; window: "5H" | "7D" } | null = null;
+  if (finalizedLargestDelta) {
+    roundedLargestDelta = {
+      delta: round2(finalizedLargestDelta.delta),
+      at: finalizedLargestDelta.at,
+      window: finalizedLargestDelta.window,
+    };
+  }
+
   return {
     lastUsageAt,
     lastUsageWindow,
-    largestDelta: largestDelta
-      ? {
-          ...largestDelta,
-          delta: round2(largestDelta.delta),
-        }
-      : null,
+    largestDelta: roundedLargestDelta,
   };
 }
 
