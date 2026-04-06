@@ -1,4 +1,5 @@
 import type { Config } from "./config";
+import { explainAuthFailure, getAuthPreflightError } from "./auth-diagnostics";
 import { insertSnapshot } from "./db";
 import { normalizeUsagePayload } from "./normalize";
 
@@ -19,10 +20,10 @@ export interface PollResult {
 }
 
 const TIER_DELAYS: Record<Tier, number> = {
-  idle: 5 * 60_000,    // 5 min
+  idle: 5 * 60_000, // 5 min
   light: 2.5 * 60_000, // 2.5 min
-  active: 1 * 60_000,  // 1 min
-  burst: 30_000,        // 30 sec
+  active: 1 * 60_000, // 1 min
+  burst: 30_000, // 30 sec
 };
 
 const TIER_UP: Record<Tier, Tier | null> = {
@@ -59,7 +60,7 @@ export function computeNextDelay(
     };
   }
 
-  // Success — reset failures
+  // Success - reset failures
   const delta = result.delta;
   let tier: Tier = state.currentTier;
   let noChange = state.consecutiveNoChange;
@@ -76,7 +77,7 @@ export function computeNextDelay(
       noChange = 0; // delta >= 2, stay at burst
     }
   } else if (delta > 0) {
-    // Delta detected — step up one tier
+    // Delta detected - step up one tier
     noChange = 0;
 
     if (tier === "active" && delta >= 3) {
@@ -178,7 +179,8 @@ export class UsageCollector {
 
   async pollOnce(): Promise<{ status: string; error?: string }> {
     if (!this.config.hasAuth) {
-      const msg = "No auth configured. Set CLAUDE_BEARER_TOKEN or CLAUDE_SESSION_COOKIE.";
+      const msg =
+        "No auth configured. Set CLAUDE_BEARER_TOKEN or CLAUDE_SESSION_COOKIE.";
       this.state.lastAttemptAt = new Date().toISOString();
       this.state.lastError = msg;
       this.state.consecutiveFailures++;
@@ -207,12 +209,18 @@ export class UsageCollector {
     this.state.lastAttemptAt = new Date().toISOString();
 
     try {
+      const preflightError = getAuthPreflightError(this.config);
+      if (preflightError) {
+        throw new Error(preflightError);
+      }
+
       const headers: Record<string, string> = {
-        "Accept": "application/json, text/plain, */*",
+        Accept: "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-        "Referer": "https://claude.ai/settings/usage",
-        "Origin": "https://claude.ai",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        Referer: "https://claude.ai/settings/usage",
+        Origin: "https://claude.ai",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
@@ -238,7 +246,9 @@ export class UsageCollector {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${response.status}: ${(payload ? JSON.stringify(payload) : rawBody).slice(0, 500)}`
+          `HTTP ${response.status}: ${(
+            payload ? JSON.stringify(payload) : rawBody
+          ).slice(0, 500)}`
         );
       }
 
@@ -270,7 +280,7 @@ export class UsageCollector {
       let delta = 0;
       if (currentUtil != null && this.lastFiveHourUtil != null) {
         if (currentResetsAt !== this.lastFiveHourResetsAt) {
-          // Window reset — delta is the full current value (it started from 0)
+          // Window reset - delta is the full current value (it started from 0)
           delta = currentUtil;
         } else {
           delta = Math.max(0, currentUtil - this.lastFiveHourUtil);
@@ -301,7 +311,8 @@ export class UsageCollector {
 
       return { status: "ok" };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      const msg = explainAuthFailure(this.config, rawMsg);
       this.state.lastError = msg;
       this.state.consecutiveFailures++;
 

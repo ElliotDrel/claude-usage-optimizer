@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { OAUTH_USAGE_ENDPOINT } from "./auth-diagnostics";
 
 export interface Config {
   port: number;
@@ -39,13 +40,26 @@ export function getConfig(): Config {
     process.cwd(), /*turbopackIgnore: true*/ process.env.DATA_DIR ?? "data"
   );
 
+  const legacyEndpoint = process.env.CLAUDE_USAGE_ENDPOINT?.trim();
+  const bearerEndpoint =
+    process.env.CLAUDE_BEARER_USAGE_ENDPOINT?.trim() ||
+    legacyEndpoint ||
+    OAUTH_USAGE_ENDPOINT;
+  const cookieEndpoint =
+    process.env.CLAUDE_COOKIE_USAGE_ENDPOINT?.trim() ||
+    legacyEndpoint ||
+    "";
+
+  const endpoint =
+    authMode === "cookie"
+      ? cookieEndpoint || bearerEndpoint
+      : bearerEndpoint;
+
   return {
     port: parseInt(process.env.PORT ?? "3000", 10),
     dataDir,
     dbPath: path.join(dataDir, "usage.db"),
-    endpoint:
-      process.env.CLAUDE_USAGE_ENDPOINT?.trim() ??
-      "https://api.anthropic.com/api/oauth/usage",
+    endpoint,
     bearerToken,
     sessionCookie,
     authMode,

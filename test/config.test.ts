@@ -36,11 +36,17 @@ describe("getConfig", () => {
       {
         CLAUDE_SESSION_COOKIE: "session=value",
         CLAUDE_BEARER_TOKEN: "bearer-token",
+        CLAUDE_COOKIE_USAGE_ENDPOINT: "https://claude.ai/api/organizations/test-org/usage",
+        CLAUDE_BEARER_USAGE_ENDPOINT: "https://api.anthropic.com/api/oauth/usage",
       },
       () => {
         const config = getConfig();
         assert.equal(config.authMode, "cookie");
         assert.equal(config.hasAuth, true);
+        assert.equal(
+          config.endpoint,
+          "https://claude.ai/api/organizations/test-org/usage"
+        );
       }
     );
   });
@@ -50,11 +56,30 @@ describe("getConfig", () => {
       {
         CLAUDE_SESSION_COOKIE: "",
         CLAUDE_BEARER_TOKEN: "bearer-token",
+        CLAUDE_COOKIE_USAGE_ENDPOINT: "https://claude.ai/api/organizations/test-org/usage",
+        CLAUDE_BEARER_USAGE_ENDPOINT: "https://api.anthropic.com/api/oauth/usage",
       },
       () => {
         const config = getConfig();
         assert.equal(config.authMode, "bearer");
         assert.equal(config.hasAuth, true);
+        assert.equal(config.endpoint, "https://api.anthropic.com/api/oauth/usage");
+      }
+    );
+  });
+
+  it("falls back to the legacy endpoint when auth-specific endpoints are unset", () => {
+    withEnv(
+      {
+        CLAUDE_SESSION_COOKIE: "",
+        CLAUDE_BEARER_TOKEN: "bearer-token",
+        CLAUDE_COOKIE_USAGE_ENDPOINT: undefined,
+        CLAUDE_BEARER_USAGE_ENDPOINT: undefined,
+        CLAUDE_USAGE_ENDPOINT: "https://legacy.example/usage",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.endpoint, "https://legacy.example/usage");
       }
     );
   });

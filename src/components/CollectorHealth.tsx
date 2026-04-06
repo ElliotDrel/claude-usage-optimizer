@@ -113,6 +113,27 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
         </span>
       </div>
 
+      {runtime.lastError ? (
+        <div
+          className="rounded-lg p-3 mb-4"
+          style={{
+            background: "rgba(185, 28, 28, 0.08)",
+            border: "1px solid rgba(185, 28, 28, 0.24)",
+            color: "var(--text-primary)",
+          }}
+        >
+          <p
+            className="text-[10px] tracking-[0.15em] uppercase mb-2"
+            style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
+          >
+            Collector Error
+          </p>
+          <p className="text-sm leading-6 break-words">
+            {runtime.lastError}
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric
           label="Auth"
@@ -133,7 +154,7 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
         <Metric
           label="Failures"
           value={String(runtime.consecutiveFailures)}
-          detail={runtime.lastError ?? "No errors"}
+          detail={runtime.lastError ? "See collector error above" : "No errors"}
         />
       </div>
     </div>
