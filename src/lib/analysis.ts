@@ -1,5 +1,6 @@
 import type { SnapshotRow } from "./db";
 import type { CollectorState } from "./collector";
+import { computeUsageDelta } from "./usage-window";
 
 export interface HourlyBar {
   hour: number;
@@ -41,6 +42,15 @@ export interface DashboardData {
     hourlyBars: HourlyBar[];
     heatmap: HeatmapCell[];
   };
+  usageInsights: {
+    lastUsageAt: string | null;
+    lastUsageWindow: "5H" | "7D" | null;
+    largestDelta: {
+      delta: number;
+      at: string;
+      window: "5H" | "7D";
+    } | null;
+  };
   runtime: CollectorState;
   storage: { path: string; sizeBytes: number; totalSnapshots: number };
 }
@@ -66,18 +76,12 @@ function computeDelta(
   curr: SnapshotRow,
   windowKey: "five_hour" | "seven_day"
 ): number {
-  const currUtil = curr[`${windowKey}_utilization`];
-  const prevUtil = prev[`${windowKey}_utilization`];
-
-  if (currUtil == null) return 0;
-  if (prevUtil == null) return currUtil;
-
-  const currReset = curr[`${windowKey}_resets_at`];
-  const prevReset = prev[`${windowKey}_resets_at`];
-
-  if (currReset !== prevReset) return currUtil;
-
-  return Math.max(0, currUtil - prevUtil);
+  return computeUsageDelta(
+    prev[`${windowKey}_utilization`],
+    curr[`${windowKey}_utilization`],
+    prev[`${windowKey}_resets_at`],
+    curr[`${windowKey}_resets_at`]
+  );
 }
 
 function buildActivity(snapshots: SnapshotRow[]) {
@@ -118,6 +122,52 @@ function buildActivity(snapshots: SnapshotRow[]) {
   return {
     hourlyBars: hourlyBars.map((b) => ({ ...b, totalDelta: round2(b.totalDelta) })),
     heatmap: heatmap.map((c) => ({ ...c, totalDelta: round2(c.totalDelta) })),
+  };
+}
+
+function buildUsageInsights(snapshots: SnapshotRow[]) {
+  const okSnapshots = snapshots.filter((s) => s.status === "ok");
+
+  let lastUsageAt: string | null = null;
+  let lastUsageWindow: "5H" | "7D" | null = null;
+  let largestDelta: { delta: number; at: string; window: "5H" | "7D" } | null = null;
+
+  for (let i = 1; i < okSnapshots.length; i++) {
+    const prev = okSnapshots[i - 1];
+    const curr = okSnapshots[i];
+
+    const delta5h = computeDelta(prev, curr, "five_hour");
+    const delta7d = computeDelta(prev, curr, "seven_day");
+
+    const recordEvent = (delta: number, window: "5H" | "7D") => {
+      if (delta <= 0) return;
+
+      lastUsageAt = curr.timestamp;
+      lastUsageWindow = window;
+
+      if (!largestDelta || delta > largestDelta.delta) {
+        largestDelta = {
+          delta,
+          at: curr.timestamp,
+          window,
+        };
+      }
+    };
+
+    // Check 5H first so a larger 7D change in the same snapshot can overwrite it.
+    recordEvent(delta5h, "5H");
+    recordEvent(delta7d, "7D");
+  }
+
+  return {
+    lastUsageAt,
+    lastUsageWindow,
+    largestDelta: largestDelta
+      ? {
+          ...largestDelta,
+          delta: round2(largestDelta.delta),
+        }
+      : null,
   };
 }
 
@@ -172,6 +222,7 @@ export function buildDashboardData(
     current,
     timeline,
     activity: buildActivity(snapshots),
+    usageInsights: buildUsageInsights(snapshots),
     runtime,
     storage: storageMeta,
   };

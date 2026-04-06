@@ -106,6 +106,27 @@ describe("buildDashboardData", () => {
     assert.equal(result.activity.hourlyBars[hour].totalDelta, 5);
   });
 
+  it("ignores resets_at jitter within the same hour", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: 1,
+        five_hour_resets_at: "2026-04-06T15:00:00.738106+00:00",
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        five_hour_utilization: 1,
+        five_hour_resets_at: "2026-04-06T15:00:01.267402+00:00",
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    const totalDelta = result.activity.hourlyBars.reduce((sum, b) => sum + b.totalDelta, 0);
+    assert.equal(totalDelta, 0);
+  });
+
   it("returns delta 0 when current utilization is null after reset", () => {
     const snapshots = [
       makeSnapshot({
@@ -167,5 +188,58 @@ describe("buildDashboardData", () => {
     const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
     const totalDelta = result.activity.hourlyBars.reduce((sum, b) => sum + b.totalDelta, 0);
     assert.equal(totalDelta, 0);
+  });
+
+  it("tracks the timestamp of the last detected usage change", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: 10,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        five_hour_utilization: 25,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+      makeSnapshot({
+        id: 3,
+        timestamp: "2026-04-06T10:10:00Z",
+        five_hour_utilization: 25,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    assert.equal(result.usageInsights.lastUsageAt, "2026-04-06T10:05:00Z");
+    assert.equal(result.usageInsights.lastUsageWindow, "5H");
+  });
+
+  it("tracks the largest usage delta change", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        five_hour_utilization: 10,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+        seven_day_utilization: 40,
+        seven_day_resets_at: "2026-04-13T10:00:00Z",
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        five_hour_utilization: 30,
+        five_hour_resets_at: "2026-04-06T15:00:00Z",
+        seven_day_utilization: 41,
+        seven_day_resets_at: "2026-04-13T10:00:00Z",
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    assert.equal(result.usageInsights.largestDelta?.delta, 20);
+    assert.equal(result.usageInsights.largestDelta?.window, "5H");
+    assert.equal(result.usageInsights.largestDelta?.at, "2026-04-06T10:05:00Z");
   });
 });

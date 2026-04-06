@@ -108,6 +108,67 @@ export function UsageCards({ data }: { data: DashboardData | null }) {
           </div>
         );
       })}
+
+      <div
+        className="rounded-lg p-4"
+        style={{
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border-subtle)",
+        }}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <p
+              className="text-[10px] tracking-[0.15em] uppercase mb-1"
+              style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
+            >
+              Last Usage
+            </p>
+            {data.usageInsights.lastUsageAt ? (
+              <>
+                <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+                  {formatDistanceToNow(new Date(data.usageInsights.lastUsageAt), {
+                    addSuffix: true,
+                  })}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                  {new Date(data.usageInsights.lastUsageAt).toLocaleString()} ({data.usageInsights.lastUsageWindow})
+                </p>
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                No usage change detected yet.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <p
+              className="text-[10px] tracking-[0.15em] uppercase mb-1"
+              style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
+            >
+              Largest Delta
+            </p>
+            {data.usageInsights.largestDelta ? (
+              <>
+                <p
+                  className="text-sm font-semibold"
+                  style={{ color: "var(--text-accent)", fontFamily: "var(--font-mono)" }}
+                >
+                  +{data.usageInsights.largestDelta.delta.toFixed(2)}%
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                  {new Date(data.usageInsights.largestDelta.at).toLocaleString()} ({data.usageInsights.largestDelta.window})
+                </p>
+              </>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                Not enough history to calculate.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
