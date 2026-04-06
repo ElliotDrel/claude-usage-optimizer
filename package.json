@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "startup:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-startup.ps1",
+    "startup:restart": "powershell -ExecutionPolicy Bypass -File .\\scripts\\restart-startup.ps1",
     "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",
     "lint": "eslint",
     "test": "tsx --test test/*.test.ts"
