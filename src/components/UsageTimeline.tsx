@@ -98,7 +98,12 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
             stroke={COLORS.fiveHour}
             fill="url(#grad5h)"
             strokeWidth={2}
-            dot={false}
+            dot={{
+              r: 2,
+              fill: COLORS.fiveHour,
+              stroke: "var(--bg-surface)",
+              strokeWidth: 1,
+            }}
             connectNulls
             activeDot={{
               r: 4,
@@ -113,7 +118,12 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
             stroke={COLORS.sevenDay}
             fill="url(#grad7d)"
             strokeWidth={2}
-            dot={false}
+            dot={{
+              r: 2,
+              fill: COLORS.sevenDay,
+              stroke: "var(--bg-surface)",
+              strokeWidth: 1,
+            }}
             connectNulls
             activeDot={{
               r: 4,
