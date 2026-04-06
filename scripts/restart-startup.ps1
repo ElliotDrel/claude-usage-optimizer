@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $healthUrl = "http://$BindHost`:$Port"
 $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+$nextDir = Join-Path $repoRoot ".next"
 
 if (-not $task) {
     throw "No scheduled task named '$TaskName' was found. Run 'npm run startup:install' first."
@@ -17,16 +18,21 @@ if (-not $task) {
 
 Set-Location $repoRoot
 
-Write-Host "Building the app..."
-& npm.cmd run build
-if ($LASTEXITCODE -ne 0) {
-    throw "Build failed. Startup task was not restarted."
-}
-
 if ($task.State -eq "Running") {
     Write-Host "Stopping startup task..."
     Stop-ScheduledTask -TaskName $TaskName
     Start-Sleep -Seconds 2
+}
+
+if (Test-Path $nextDir) {
+    Write-Host "Removing old production build artifacts..."
+    Remove-Item -Recurse -Force $nextDir
+}
+
+Write-Host "Building the app..."
+& npm.cmd run build
+if ($LASTEXITCODE -ne 0) {
+    throw "Build failed. Startup task was not restarted."
 }
 
 Write-Host "Starting startup task..."
