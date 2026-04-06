@@ -1,7 +1,7 @@
 param(
     [string]$TaskName = "ClaudeUsageTracker",
     [string]$BindHost = "127.0.0.1",
-    [int]$Port = 3000,
+    [int]$Port = 3017,
     [int]$StartupWaitSeconds = 20
 )
 

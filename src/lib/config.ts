@@ -56,7 +56,7 @@ export function getConfig(): Config {
       : bearerEndpoint;
 
   return {
-    port: parseInt(process.env.PORT ?? "3000", 10),
+    port: parseInt(process.env.PORT ?? "3017", 10),
     dataDir,
     dbPath: path.join(dataDir, "usage.db"),
     endpoint,

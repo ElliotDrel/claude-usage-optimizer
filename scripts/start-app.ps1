@@ -1,6 +1,6 @@
 param(
     [string]$BindHost = "127.0.0.1",
-    [int]$Port = 3000
+    [int]$Port = 3017
 )
 
 $ErrorActionPreference = "Stop"
