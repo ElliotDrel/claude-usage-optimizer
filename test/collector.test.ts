@@ -102,15 +102,28 @@ describe("computeNextDelay", () => {
     assert.equal(result.delayMs, 600_000);
   });
 
-  it("burst steps down to active after 3 polls with delta < 2", () => {
+  it("burst stays active while there is any positive delta", () => {
     let s = state({ currentTier: "burst", consecutiveNoChange: 0 });
     s = computeNextDelay(s, { delta: 1, success: true });
+    assert.equal(s.currentTier, "burst");
+    assert.equal(s.consecutiveNoChange, 0);
+    s = computeNextDelay(s, { delta: 0, success: true });
+    assert.equal(s.currentTier, "burst");
+    assert.equal(s.consecutiveNoChange, 1);
+    s = computeNextDelay(s, { delta: 1, success: true });
+    assert.equal(s.currentTier, "burst");
+    assert.equal(s.consecutiveNoChange, 0);
+  });
+
+  it("burst steps down to active after 3 zero-delta polls", () => {
+    let s = state({ currentTier: "burst", consecutiveNoChange: 0 });
+    s = computeNextDelay(s, { delta: 0, success: true });
     assert.equal(s.currentTier, "burst");
     assert.equal(s.consecutiveNoChange, 1);
     s = computeNextDelay(s, { delta: 0, success: true });
     assert.equal(s.currentTier, "burst");
     assert.equal(s.consecutiveNoChange, 2);
-    s = computeNextDelay(s, { delta: 1, success: true });
+    s = computeNextDelay(s, { delta: 0, success: true });
     assert.equal(s.currentTier, "active");
     assert.equal(s.consecutiveNoChange, 0);
   });

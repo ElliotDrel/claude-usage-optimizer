@@ -59,15 +59,15 @@ export function computeNextDelay(
   let noChange = state.consecutiveNoChange;
 
   if (tier === "burst") {
-    // Burst has special exit: delta < 2 for 3 consecutive polls
-    if (delta < 2) {
+    // Stay in burst while usage is still changing; only cool down on no change.
+    if (delta === 0) {
       noChange++;
       if (noChange >= 3) {
         tier = "active";
         noChange = 0;
       }
     } else {
-      noChange = 0; // delta >= 2, stay at burst
+      noChange = 0; // Any positive delta keeps burst active
     }
   } else if (delta > 0) {
     // Any detected usage jumps straight to burst so we capture short spikes.
