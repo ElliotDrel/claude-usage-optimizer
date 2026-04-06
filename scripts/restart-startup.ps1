@@ -18,11 +18,29 @@ if (-not $task) {
 
 Set-Location $repoRoot
 
+function Stop-PortListener {
+    param(
+        [string]$LocalAddress,
+        [int]$LocalPort
+    )
+
+    $listeners = Get-NetTCPConnection -LocalPort $LocalPort -State Listen -ErrorAction SilentlyContinue |
+        Where-Object { $_.LocalAddress -eq $LocalAddress -or $_.LocalAddress -eq "0.0.0.0" -or $_.LocalAddress -eq "::" }
+
+    foreach ($listener in $listeners) {
+        Write-Host "Stopping process $($listener.OwningProcess) listening on $LocalAddress`:$LocalPort..."
+        Stop-Process -Id $listener.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+
 if ($task.State -eq "Running") {
     Write-Host "Stopping startup task..."
     Stop-ScheduledTask -TaskName $TaskName
     Start-Sleep -Seconds 2
 }
+
+Stop-PortListener -LocalAddress $BindHost -LocalPort $Port
+Start-Sleep -Seconds 1
 
 if (Test-Path $nextDir) {
     Write-Host "Removing old production build artifacts..."
