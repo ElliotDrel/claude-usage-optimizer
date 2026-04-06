@@ -29,10 +29,10 @@ export function getConfig(): Config {
     process.env.CLAUDE_BEARER_TOKEN?.trim() || tryReadClaudeCredentials();
   const sessionCookie = process.env.CLAUDE_SESSION_COOKIE?.trim() ?? "";
 
-  const authMode: Config["authMode"] = bearerToken
-    ? "bearer"
-    : sessionCookie
-      ? "cookie"
+  const authMode: Config["authMode"] = sessionCookie
+    ? "cookie"
+    : bearerToken
+      ? "bearer"
       : "none";
 
   const dataDir = path.resolve(

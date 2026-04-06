@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { computeNextDelay, type TierState, type PollResult } from "../src/lib/collector";
+import { computeNextDelay, type TierState } from "../src/lib/collector";
 
 function state(overrides: Partial<TierState> = {}): TierState {
   return {
