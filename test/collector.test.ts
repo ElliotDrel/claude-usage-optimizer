@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { computeNextDelay, type TierState } from "../src/lib/collector";
+import {
+  computeNextDelay,
+  computePollingDelta,
+  type TierState,
+} from "../src/lib/collector";
 
 function state(overrides: Partial<TierState> = {}): TierState {
   return {
@@ -135,5 +139,40 @@ describe("computeNextDelay", () => {
     );
     assert.equal(result.currentTier, "burst");
     assert.equal(result.consecutiveNoChange, 0);
+  });
+});
+
+describe("computePollingDelta", () => {
+  it("treats the first successful poll as baseline only", () => {
+    const delta = computePollingDelta(
+      false,
+      null,
+      1,
+      null,
+      "2026-04-06T22:00:01.267402+00:00"
+    );
+    assert.equal(delta, 0);
+  });
+
+  it("computes a positive delta after the baseline is established", () => {
+    const delta = computePollingDelta(
+      true,
+      1,
+      2,
+      "2026-04-06T22:00:00.738106+00:00",
+      "2026-04-06T22:00:01.267402+00:00"
+    );
+    assert.equal(delta, 1);
+  });
+
+  it("still detects usage after baseline when utilization returns from null", () => {
+    const delta = computePollingDelta(
+      true,
+      null,
+      1,
+      null,
+      "2026-04-06T22:00:01.267402+00:00"
+    );
+    assert.equal(delta, 1);
   });
 });

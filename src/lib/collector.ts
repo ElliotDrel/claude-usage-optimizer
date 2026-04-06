@@ -94,6 +94,21 @@ export function computeNextDelay(
   };
 }
 
+export function computePollingDelta(
+  hasBaseline: boolean,
+  prevUtil: number | null,
+  currUtil: number | null,
+  prevResetAt: string | null,
+  currResetAt: string | null
+): number {
+  // Seed the in-memory baseline on first success without treating it as new usage.
+  if (!hasBaseline) {
+    return 0;
+  }
+
+  return computeUsageDelta(prevUtil, currUtil, prevResetAt, currResetAt);
+}
+
 // --- CollectorState ---
 
 export interface CollectorState {
@@ -117,6 +132,7 @@ export class UsageCollector {
   private config: Config;
   private timeout: ReturnType<typeof setTimeout> | null = null;
   private polling = false;
+  private hasFiveHourBaseline = false;
   private lastFiveHourUtil: number | null = null;
   private lastFiveHourResetsAt: string | null = null;
   private tierState: TierState = {
@@ -262,12 +278,14 @@ export class UsageCollector {
       // Compute delta using normalized hour-aligned reset boundaries.
       const currentUtil = fiveHour?.utilization ?? null;
       const currentResetsAt = fiveHour?.resetsAt ?? null;
-      const delta = computeUsageDelta(
+      const delta = computePollingDelta(
+        this.hasFiveHourBaseline,
         this.lastFiveHourUtil,
         currentUtil,
         this.lastFiveHourResetsAt,
         currentResetsAt
       );
+      this.hasFiveHourBaseline = true;
       this.lastFiveHourUtil = currentUtil;
       this.lastFiveHourResetsAt = currentResetsAt;
 
