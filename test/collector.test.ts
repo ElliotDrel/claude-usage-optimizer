@@ -101,4 +101,26 @@ describe("computeNextDelay", () => {
     });
     assert.equal(result.delayMs, 600_000);
   });
+
+  it("burst steps down to active after 3 polls with delta < 2", () => {
+    let s = state({ currentTier: "burst", consecutiveNoChange: 0 });
+    s = computeNextDelay(s, { delta: 1, success: true });
+    assert.equal(s.currentTier, "burst");
+    assert.equal(s.consecutiveNoChange, 1);
+    s = computeNextDelay(s, { delta: 0, success: true });
+    assert.equal(s.currentTier, "burst");
+    assert.equal(s.consecutiveNoChange, 2);
+    s = computeNextDelay(s, { delta: 1, success: true });
+    assert.equal(s.currentTier, "active");
+    assert.equal(s.consecutiveNoChange, 0);
+  });
+
+  it("burst stays at burst when delta >= 2", () => {
+    const result = computeNextDelay(
+      state({ currentTier: "burst", consecutiveNoChange: 2 }),
+      { delta: 2, success: true }
+    );
+    assert.equal(result.currentTier, "burst");
+    assert.equal(result.consecutiveNoChange, 0);
+  });
 });

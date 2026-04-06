@@ -3,7 +3,6 @@ import path from "node:path";
 
 export interface Config {
   port: number;
-  pollMinMs: number;
   dataDir: string;
   dbPath: string;
   endpoint: string;
@@ -25,12 +24,6 @@ function tryReadClaudeCredentials(): string {
   }
 }
 
-function sanitizeMinInterval(raw: string | undefined): number {
-  const parsed = parseInt(raw ?? "30000", 10);
-  if (!Number.isFinite(parsed) || parsed < 30_000) return 30_000;
-  return parsed;
-}
-
 export function getConfig(): Config {
   const bearerToken =
     process.env.CLAUDE_BEARER_TOKEN?.trim() || tryReadClaudeCredentials();
@@ -48,7 +41,6 @@ export function getConfig(): Config {
 
   return {
     port: parseInt(process.env.PORT ?? "3000", 10),
-    pollMinMs: sanitizeMinInterval(process.env.POLL_MIN_MS),
     dataDir,
     dbPath: path.join(dataDir, "usage.db"),
     endpoint:

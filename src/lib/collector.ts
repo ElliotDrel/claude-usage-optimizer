@@ -132,6 +132,7 @@ export class UsageCollector {
   private timeout: ReturnType<typeof setTimeout> | null = null;
   private polling = false;
   private lastFiveHourUtil: number | null = null;
+  private lastFiveHourResetsAt: string | null = null;
   private tierState: TierState = {
     currentTier: "idle",
     consecutiveNoChange: 0,
@@ -262,15 +263,22 @@ export class UsageCollector {
         errorMessage: null,
       });
 
-      // Compute delta
+      // Compute delta (same logic as analysis.ts computeDelta)
       const currentUtil = fiveHour?.utilization ?? null;
+      const currentResetsAt = fiveHour?.resetsAt ?? null;
       let delta = 0;
-      if (currentUtil !== null && this.lastFiveHourUtil !== null) {
-        delta = Math.abs(currentUtil - this.lastFiveHourUtil);
+      if (currentUtil != null && this.lastFiveHourUtil != null) {
+        if (currentResetsAt !== this.lastFiveHourResetsAt) {
+          // Window reset — delta is the full current value (it started from 0)
+          delta = currentUtil;
+        } else {
+          delta = Math.max(0, currentUtil - this.lastFiveHourUtil);
+        }
+      } else if (currentUtil != null && this.lastFiveHourUtil == null) {
+        delta = currentUtil;
       }
-      if (currentUtil !== null) {
-        this.lastFiveHourUtil = currentUtil;
-      }
+      this.lastFiveHourUtil = currentUtil;
+      this.lastFiveHourResetsAt = currentResetsAt;
 
       // Update tier
       this.state.consecutiveFailures = 0;
