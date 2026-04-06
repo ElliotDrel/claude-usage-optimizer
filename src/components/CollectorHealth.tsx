@@ -111,8 +111,8 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
           accent
         />
         <Metric
-          label="Interval"
-          value={`${Math.round(runtime.pollIntervalMs / 1000)}s`}
+          label="Tier"
+          value={runtime.currentTier}
           detail={`Attempt ${lastAttempt}`}
         />
         <Metric

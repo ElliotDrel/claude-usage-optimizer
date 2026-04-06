@@ -2,6 +2,114 @@ import type { Config } from "./config";
 import { insertSnapshot } from "./db";
 import { normalizeUsagePayload } from "./normalize";
 
+// --- Tier types and constants ---
+
+export type Tier = "idle" | "light" | "active" | "burst";
+
+export interface TierState {
+  currentTier: Tier;
+  consecutiveNoChange: number;
+  consecutiveFailures?: number;
+}
+
+export interface PollResult {
+  delta: number;
+  success: boolean;
+  consecutiveFailures?: number;
+}
+
+const TIER_DELAYS: Record<Tier, number> = {
+  idle: 5 * 60_000,    // 5 min
+  light: 2.5 * 60_000, // 2.5 min
+  active: 1 * 60_000,  // 1 min
+  burst: 30_000,        // 30 sec
+};
+
+const TIER_UP: Record<Tier, Tier | null> = {
+  idle: "light",
+  light: "active",
+  active: "burst",
+  burst: null,
+};
+
+const TIER_DOWN: Record<Tier, Tier | null> = {
+  idle: null,
+  light: "idle",
+  active: "light",
+  burst: "active",
+};
+
+const ERROR_BACKOFF = [60_000, 120_000, 300_000, 600_000]; // 1m, 2m, 5m, 10m
+
+// --- Pure function ---
+
+export function computeNextDelay(
+  state: TierState,
+  result: PollResult
+): TierState & { delayMs: number } {
+  // Handle failure
+  if (!result.success) {
+    const failures = result.consecutiveFailures ?? 1;
+    const idx = Math.min(failures - 1, ERROR_BACKOFF.length - 1);
+    return {
+      currentTier: state.currentTier,
+      consecutiveNoChange: state.consecutiveNoChange,
+      consecutiveFailures: failures,
+      delayMs: ERROR_BACKOFF[idx],
+    };
+  }
+
+  // Success — reset failures
+  const delta = result.delta;
+  let tier: Tier = state.currentTier;
+  let noChange = state.consecutiveNoChange;
+
+  if (tier === "burst") {
+    // Burst has special exit: delta < 2 for 3 consecutive polls
+    if (delta < 2) {
+      noChange++;
+      if (noChange >= 3) {
+        tier = "active";
+        noChange = 0;
+      }
+    } else {
+      noChange = 0; // delta >= 2, stay at burst
+    }
+  } else if (delta > 0) {
+    // Delta detected — step up one tier
+    noChange = 0;
+
+    if (tier === "active" && delta >= 3) {
+      tier = "burst";
+    } else {
+      const up = TIER_UP[tier];
+      if (up && up !== "burst") {
+        tier = up;
+      }
+      // active with delta < 3: stay at active (can't go to burst)
+    }
+  } else {
+    // No change at non-burst tier
+    noChange++;
+    if (noChange >= 3) {
+      const down = TIER_DOWN[tier];
+      if (down) {
+        tier = down;
+      }
+      noChange = 0;
+    }
+  }
+
+  return {
+    currentTier: tier,
+    consecutiveNoChange: noChange,
+    consecutiveFailures: 0,
+    delayMs: TIER_DELAYS[tier],
+  };
+}
+
+// --- CollectorState ---
+
 export interface CollectorState {
   startedAt: string;
   isConfigured: boolean;
@@ -12,13 +120,23 @@ export interface CollectorState {
   consecutiveFailures: number;
   endpoint: string;
   authMode: string;
-  pollIntervalMs: number;
+  currentTier: Tier;
+  nextPollAt: string | null;
+  consecutiveNoChange: number;
 }
+
+// --- UsageCollector class ---
 
 export class UsageCollector {
   private config: Config;
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timeout: ReturnType<typeof setTimeout> | null = null;
   private polling = false;
+  private lastFiveHourUtil: number | null = null;
+  private tierState: TierState = {
+    currentTier: "idle",
+    consecutiveNoChange: 0,
+    consecutiveFailures: 0,
+  };
   private state: CollectorState;
 
   constructor(config: Config) {
@@ -33,12 +151,28 @@ export class UsageCollector {
       consecutiveFailures: 0,
       endpoint: config.endpoint,
       authMode: config.authMode,
-      pollIntervalMs: config.pollIntervalMs,
+      currentTier: "idle",
+      nextPollAt: null,
+      consecutiveNoChange: 0,
     };
   }
 
   getState(): CollectorState {
     return { ...this.state };
+  }
+
+  private scheduleNext(delayMs: number) {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
+    this.state.nextPollAt = new Date(Date.now() + delayMs).toISOString();
+    this.timeout = setTimeout(() => void this.pollOnce(), delayMs);
+  }
+
+  reschedule() {
+    const delayMs = TIER_DELAYS[this.tierState.currentTier];
+    this.scheduleNext(delayMs);
   }
 
   async pollOnce(): Promise<{ status: string; error?: string }> {
@@ -59,6 +193,8 @@ export class UsageCollector {
         rawJson: null,
         errorMessage: msg,
       });
+      // No auth: schedule next in 10 minutes
+      this.scheduleNext(10 * 60_000);
       return { status: "error", error: msg };
     }
 
@@ -126,9 +262,34 @@ export class UsageCollector {
         errorMessage: null,
       });
 
+      // Compute delta
+      const currentUtil = fiveHour?.utilization ?? null;
+      let delta = 0;
+      if (currentUtil !== null && this.lastFiveHourUtil !== null) {
+        delta = Math.abs(currentUtil - this.lastFiveHourUtil);
+      }
+      if (currentUtil !== null) {
+        this.lastFiveHourUtil = currentUtil;
+      }
+
+      // Update tier
+      this.state.consecutiveFailures = 0;
+      const nextTier = computeNextDelay(this.tierState, {
+        delta,
+        success: true,
+      });
+      this.tierState = {
+        currentTier: nextTier.currentTier,
+        consecutiveNoChange: nextTier.consecutiveNoChange,
+        consecutiveFailures: 0,
+      };
+      this.state.currentTier = nextTier.currentTier;
+      this.state.consecutiveNoChange = nextTier.consecutiveNoChange;
       this.state.lastSuccessAt = new Date().toISOString();
       this.state.lastError = null;
-      this.state.consecutiveFailures = 0;
+
+      this.scheduleNext(nextTier.delayMs);
+
       return { status: "ok" };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -149,6 +310,20 @@ export class UsageCollector {
         errorMessage: msg,
       });
 
+      // Update tier with failure
+      const nextTier = computeNextDelay(this.tierState, {
+        delta: 0,
+        success: false,
+        consecutiveFailures: this.state.consecutiveFailures,
+      });
+      this.tierState = {
+        currentTier: nextTier.currentTier,
+        consecutiveNoChange: nextTier.consecutiveNoChange,
+        consecutiveFailures: nextTier.consecutiveFailures,
+      };
+
+      this.scheduleNext(nextTier.delayMs);
+
       console.warn(`[collector] Poll failed: ${msg}`);
       return { status: "error", error: msg };
     } finally {
@@ -158,18 +333,18 @@ export class UsageCollector {
   }
 
   start() {
-    if (this.timer) return;
+    if (this.timeout) return;
     console.log(
-      `[collector] Starting (interval: ${this.config.pollIntervalMs}ms, auth: ${this.config.authMode})`
+      `[collector] Starting (tier: ${this.tierState.currentTier}, auth: ${this.config.authMode})`
     );
     void this.pollOnce();
-    this.timer = setInterval(() => void this.pollOnce(), this.config.pollIntervalMs);
   }
 
   stop() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+      this.state.nextPollAt = null;
     }
   }
 }
