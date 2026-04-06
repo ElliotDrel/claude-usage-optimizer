@@ -1,16 +1,44 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { DashboardData } from "@/lib/analysis";
 import { formatDistanceToNow } from "date-fns";
 
 function formatDelay(tier: string): string {
   switch (tier) {
-    case "burst": return "30s";
-    case "active": return "1m";
-    case "light": return "2.5m";
-    case "idle": return "5m";
-    default: return "—";
+    case "burst":
+      return "30s";
+    case "active":
+      return "1m";
+    case "light":
+      return "2.5m";
+    case "idle":
+      return "5m";
+    default:
+      return "--";
   }
+}
+
+function formatCountdown(target: string, now: number): string {
+  const diffMs = new Date(target).getTime() - now;
+  if (diffMs <= 0) {
+    return "Now";
+  }
+
+  const totalSeconds = Math.ceil(diffMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${seconds}s`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
 }
 
 function Metric({
@@ -18,11 +46,13 @@ function Metric({
   value,
   detail,
   accent,
+  detailColor,
 }: {
   label: string;
   value: string;
   detail: string;
   accent?: boolean;
+  detailColor?: string;
 }) {
   return (
     <div
@@ -53,10 +83,7 @@ function Metric({
       >
         {value}
       </p>
-      <p
-        className="text-[11px] truncate"
-        style={{ color: "var(--text-tertiary)" }}
-      >
+      <p className="text-[11px] truncate" style={{ color: detailColor ?? "var(--text-tertiary)" }}>
         {detail}
       </p>
     </div>
@@ -64,6 +91,13 @@ function Metric({
 }
 
 export function CollectorHealth({ data }: { data: DashboardData | null }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   if (!data) {
     return (
       <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
@@ -78,13 +112,14 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
     ? formatDistanceToNow(new Date(runtime.lastSuccessAt), { addSuffix: true })
     : "Never";
 
-  const nextPoll = runtime.nextPollAt
-    ? formatDistanceToNow(new Date(runtime.nextPollAt), { addSuffix: true })
-    : "—";
+  const nextPoll = runtime.nextPollAt ? formatCountdown(runtime.nextPollAt, now) : "--";
+  const nextPollDetail = runtime.nextPollAt
+    ? new Date(runtime.nextPollAt).toLocaleTimeString()
+    : "Not scheduled";
+  const failureDetail = `${health.successCount} ok / ${health.errorCount} err`;
 
   return (
     <div>
-      {/* Status bar */}
       <div
         className="flex items-center gap-4 text-[11px] mb-4 pb-3"
         style={{
@@ -94,21 +129,15 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
         }}
       >
         <span>
-          Last success:{" "}
-          <span style={{ color: "var(--text-secondary)" }}>{lastSuccess}</span>
+          Last success: <span style={{ color: "var(--text-secondary)" }}>{lastSuccess}</span>
         </span>
         <span style={{ color: "var(--border-default)" }}>|</span>
         <span>
-          Storage:{" "}
-          <span style={{ color: "var(--text-secondary)" }}>
-            {(storage.sizeBytes / 1024).toFixed(1)} KB
-          </span>
+          Storage: <span style={{ color: "var(--text-secondary)" }}>{(storage.sizeBytes / 1024).toFixed(1)} KB</span>
         </span>
         <span style={{ color: "var(--border-default)" }}>|</span>
         <span>
-          <span style={{ color: "var(--text-secondary)" }}>
-            {storage.totalSnapshots}
-          </span>{" "}
+          <span style={{ color: "var(--text-secondary)" }}>{storage.totalSnapshots}</span>{" "}
           snapshots
         </span>
       </div>
@@ -128,9 +157,7 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
           >
             Collector Error
           </p>
-          <p className="text-sm leading-6 break-words">
-            {runtime.lastError}
-          </p>
+          <p className="text-sm leading-6 break-words">{runtime.lastError}</p>
         </div>
       ) : null}
 
@@ -141,20 +168,13 @@ export function CollectorHealth({ data }: { data: DashboardData | null }) {
           detail={runtime.isConfigured ? "Configured" : "Missing credentials"}
           accent
         />
-        <Metric
-          label="Tier"
-          value={runtime.currentTier}
-          detail={formatDelay(runtime.currentTier)}
-        />
-        <Metric
-          label="Next Poll"
-          value={nextPoll}
-          detail={`${health.successCount} ok / ${health.errorCount} err`}
-        />
+        <Metric label="Tier" value={runtime.currentTier} detail={formatDelay(runtime.currentTier)} />
+        <Metric label="Next Poll" value={nextPoll} detail={nextPollDetail} />
         <Metric
           label="Failures"
           value={String(runtime.consecutiveFailures)}
-          detail={runtime.lastError ? "See collector error above" : "No errors"}
+          detail={failureDetail}
+          detailColor="var(--text-secondary)"
         />
       </div>
     </div>

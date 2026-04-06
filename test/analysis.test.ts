@@ -85,7 +85,7 @@ describe("buildDashboardData", () => {
     assert.equal(result.activity.hourlyBars[hour].totalDelta, 12);
   });
 
-  it("detects window reset (different resets_at) and uses current as delta", () => {
+  it("detects window reset across different reset hours and uses current as delta", () => {
     const snapshots = [
       makeSnapshot({
         id: 1,
@@ -97,7 +97,7 @@ describe("buildDashboardData", () => {
         id: 2,
         timestamp: "2026-04-06T10:05:00Z",
         five_hour_utilization: 5,
-        five_hour_resets_at: "2026-04-06T15:05:00Z",
+        five_hour_resets_at: "2026-04-06T16:00:00Z",
       }),
     ];
 

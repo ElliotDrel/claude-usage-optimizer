@@ -78,7 +78,6 @@ export default function DashboardPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-6 py-8">
-      {/* Header */}
       <header className="mb-10 animate-fade-up">
         <div className="flex items-start justify-between gap-6">
           <div>
@@ -151,7 +150,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Divider line with accent glow */}
         <div
           className="mt-8 h-px"
           style={{
@@ -161,7 +159,6 @@ export default function DashboardPage() {
       </header>
 
       <div className="space-y-8">
-        {/* Health + Usage cards row */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-1">
           <div className="lg:col-span-3">
             <Section title="Collector" label="System Health">
@@ -175,14 +172,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Timeline */}
         <div className="animate-fade-up stagger-2">
           <Section title="Timeline" label="Usage Over Time">
             <UsageTimeline data={data} />
           </Section>
         </div>
 
-        {/* Peak Hours + Heatmap */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up stagger-3">
           <Section title="Peak Hours" label="Activity by Hour">
             <PeakHours data={data} />
@@ -192,7 +187,6 @@ export default function DashboardPage() {
           </Section>
         </div>
 
-        {/* Extra Usage */}
         <div className="animate-fade-up stagger-4">
           <Section title="Extra Data" label="Additional Fields">
             <ExtraUsage data={data} />
@@ -200,7 +194,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Footer */}
       <footer
         className="mt-12 pt-6 text-center animate-fade-up stagger-5"
         style={{ borderTop: "1px solid var(--border-subtle)" }}
@@ -209,7 +202,7 @@ export default function DashboardPage() {
           className="text-[10px] tracking-[0.3em] uppercase"
           style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
         >
-          Auto-refresh 15s · Adaptive polling
+          Auto-refresh 15s | Adaptive polling
         </p>
       </footer>
     </main>
@@ -238,10 +231,7 @@ function StatusPill({ data }: { data: DashboardData | null }) {
         textTransform: "uppercase",
       }}
     >
-      <span
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: dotColor }}
-      />
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: dotColor }} />
       {label}
     </span>
   );
