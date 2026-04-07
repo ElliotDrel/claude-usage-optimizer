@@ -9,7 +9,7 @@ import type { Config } from "../src/lib/config";
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
-    port: 3000,
+    port: 3017,
     dataDir: "data",
     dbPath: "data/usage.db",
     endpoint: OAUTH_USAGE_ENDPOINT,
