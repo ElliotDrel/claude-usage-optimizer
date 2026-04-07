@@ -11,6 +11,7 @@ export interface Config {
   sessionCookie: string;
   authMode: "bearer" | "cookie" | "none";
   hasAuth: boolean;
+  demoMode: boolean;
 }
 
 function tryReadClaudeCredentials(): string {
@@ -55,14 +56,17 @@ export function getConfig(): Config {
       ? cookieEndpoint || bearerEndpoint
       : bearerEndpoint;
 
+  const demoMode = process.env.DEMO_MODE === "true";
+
   return {
     port: parseInt(process.env.PORT ?? "3017", 10),
     dataDir,
-    dbPath: path.join(dataDir, "usage.db"),
+    dbPath: path.join(dataDir, demoMode ? "demo.db" : "usage.db"),
     endpoint,
     bearerToken,
     sessionCookie,
     authMode,
-    hasAuth: authMode !== "none",
+    hasAuth: demoMode || authMode !== "none",
+    demoMode,
   };
 }

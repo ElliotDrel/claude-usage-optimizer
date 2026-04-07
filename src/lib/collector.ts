@@ -179,6 +179,10 @@ export class UsageCollector {
   }
 
   async pollOnce(): Promise<{ status: string; error?: string }> {
+    if (this.config.demoMode) {
+      return this.pollDemo();
+    }
+
     if (!this.config.hasAuth) {
       const msg =
         "No auth configured. Set CLAUDE_BEARER_TOKEN or CLAUDE_SESSION_COOKIE.";
@@ -350,10 +354,56 @@ export class UsageCollector {
     }
   }
 
+  private async pollDemo(): Promise<{ status: string }> {
+    // Generate fake usage data that varies over time
+    const now = new Date();
+    const hour = now.getHours();
+    // Simulate usage that fluctuates: higher during work hours
+    const base = hour >= 9 && hour <= 17 ? 0.4 : 0.15;
+    const jitter = Math.random() * 0.25;
+    const fiveHourUtil = Math.min(base + jitter, 1);
+    const sevenDayUtil = Math.min(0.2 + Math.random() * 0.3, 1);
+
+    const fiveHourResets = new Date(
+      now.getTime() + (5 - (hour % 5)) * 3600_000
+    ).toISOString();
+    const sevenDayResets = new Date(
+      now.getTime() + 3 * 86400_000
+    ).toISOString();
+
+    insertSnapshot(this.config, {
+      timestamp: now.toISOString(),
+      status: "ok",
+      endpoint: "demo",
+      authMode: "demo",
+      responseStatus: 200,
+      fiveHourUtilization: fiveHourUtil,
+      fiveHourResetsAt: fiveHourResets,
+      sevenDayUtilization: sevenDayUtil,
+      sevenDayResetsAt: sevenDayResets,
+      rawJson: JSON.stringify({ demo: true }),
+      errorMessage: null,
+    });
+
+    this.state.lastAttemptAt = now.toISOString();
+    this.state.lastSuccessAt = now.toISOString();
+    this.state.lastError = null;
+    this.state.consecutiveFailures = 0;
+    this.state.currentTier = "idle";
+
+    // Poll every 60s in demo mode (just to keep UI refreshing)
+    this.scheduleNext(60_000);
+
+    console.log(
+      `[collector] Demo poll: 5h=${(fiveHourUtil * 100).toFixed(1)}%, 7d=${(sevenDayUtil * 100).toFixed(1)}%`
+    );
+    return { status: "ok" };
+  }
+
   start() {
     if (this.timeout) return;
     console.log(
-      `[collector] Starting (tier: ${this.tierState.currentTier}, auth: ${this.config.authMode})`
+      `[collector] Starting (tier: ${this.tierState.currentTier}, auth: ${this.config.authMode}${this.config.demoMode ? ", DEMO MODE" : ""})`
     );
     void this.pollOnce();
   }

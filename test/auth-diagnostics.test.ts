@@ -17,6 +17,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     sessionCookie: "",
     authMode: "none",
     hasAuth: false,
+    demoMode: false,
     ...overrides,
   };
 }
