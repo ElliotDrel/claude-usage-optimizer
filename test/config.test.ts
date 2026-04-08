@@ -32,18 +32,51 @@ function withEnv(
 }
 
 describe("getConfig", () => {
+  it("uses localhost defaults and keeps browser auto-open off by default", () => {
+    withEnv(
+      {
+        APP_HOST: undefined,
+        PORT: undefined,
+        AUTO_OPEN_BROWSER: undefined,
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.host, "localhost");
+        assert.equal(config.port, 3017);
+        assert.equal(config.appUrl, "http://localhost:3017");
+        assert.equal(config.autoOpenBrowser, false);
+      }
+    );
+  });
+
+  it("respects host, port, and browser-open overrides", () => {
+    withEnv(
+      {
+        APP_HOST: "127.0.0.1",
+        PORT: "3018",
+        AUTO_OPEN_BROWSER: "true",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.host, "127.0.0.1");
+        assert.equal(config.port, 3018);
+        assert.equal(config.appUrl, "http://127.0.0.1:3018");
+        assert.equal(config.autoOpenBrowser, true);
+      }
+    );
+  });
+
   it("prefers cookie auth when both cookie and bearer are present", () => {
     withEnv(
       {
-        CLAUDE_SESSION_COOKIE: "session=value",
+        CLAUDE_SESSION_COOKIE: "session=value; lastActiveOrg=test-org",
         CLAUDE_BEARER_TOKEN: "bearer-token",
-        CLAUDE_COOKIE_USAGE_ENDPOINT: "https://claude.ai/api/organizations/test-org/usage",
-        CLAUDE_BEARER_USAGE_ENDPOINT: "https://api.anthropic.com/api/oauth/usage",
       },
       () => {
         const config = getConfig();
         assert.equal(config.authMode, "cookie");
         assert.equal(config.hasAuth, true);
+        assert.equal(config.appUrl, "http://localhost:3017");
         assert.equal(
           config.endpoint,
           "https://claude.ai/api/organizations/test-org/usage"
@@ -57,8 +90,6 @@ describe("getConfig", () => {
       {
         CLAUDE_SESSION_COOKIE: "",
         CLAUDE_BEARER_TOKEN: "bearer-token",
-        CLAUDE_COOKIE_USAGE_ENDPOINT: "https://claude.ai/api/organizations/test-org/usage",
-        CLAUDE_BEARER_USAGE_ENDPOINT: "https://api.anthropic.com/api/oauth/usage",
       },
       () => {
         const config = getConfig();
@@ -77,13 +108,16 @@ describe("getConfig", () => {
     try {
       withEnv(
         {
-          CLAUDE_SESSION_COOKIE: "session=value",
+          CLAUDE_SESSION_COOKIE: "session=value; lastActiveOrg=test-org",
           CLAUDE_BEARER_TOKEN: undefined,
         },
         () => {
           const config = getConfig();
           assert.equal(config.authMode, "cookie");
-          assert.equal(config.sessionCookie, "session=value");
+          assert.equal(
+            config.sessionCookie,
+            "session=value; lastActiveOrg=test-org"
+          );
           assert.equal(config.bearerToken, "");
           assert.equal(existsSyncMock.mock.callCount(), 0);
         }
@@ -91,6 +125,22 @@ describe("getConfig", () => {
     } finally {
       existsSyncMock.mock.restore();
     }
+  });
+
+  it("uses CLAUDE_ORG_ID when the cookie does not include lastActiveOrg", () => {
+    withEnv(
+      {
+        CLAUDE_SESSION_COOKIE: "session=value",
+        CLAUDE_ORG_ID: "env-org",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(
+          config.endpoint,
+          "https://claude.ai/api/organizations/env-org/usage"
+        );
+      }
+    );
   });
 
   it("falls back to the legacy endpoint when auth-specific endpoints are unset", () => {

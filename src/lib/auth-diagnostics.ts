@@ -14,9 +14,9 @@ export function getAuthPreflightError(config: Config): string | null {
     endpoint !== normalizeEndpoint(OAUTH_USAGE_ENDPOINT)
   ) {
     return [
-      `Bearer auth is enabled, but CLAUDE_USAGE_ENDPOINT is set to ${config.endpoint}.`,
+      `Bearer auth is enabled, but the resolved usage endpoint is ${config.endpoint}.`,
       `Bearer auth only works with ${OAUTH_USAGE_ENDPOINT}.`,
-      "Update the endpoint or switch back to cookie auth.",
+      "Clear cookie-specific endpoint overrides or switch back to cookie auth.",
     ].join(" ");
   }
 
@@ -25,8 +25,9 @@ export function getAuthPreflightError(config: Config): string | null {
     endpoint === normalizeEndpoint(OAUTH_USAGE_ENDPOINT)
   ) {
     return [
-      "Cookie auth is enabled, but CLAUDE_USAGE_ENDPOINT is set to the OAuth usage endpoint.",
+      "Cookie auth is enabled, but the resolved usage endpoint is the OAuth usage endpoint.",
       "Cookie auth needs the claude.ai organization usage endpoint instead.",
+      "Set CLAUDE_ORG_ID, include lastActiveOrg in the cookie, or use CLAUDE_COOKIE_USAGE_ENDPOINT.",
     ].join(" ");
   }
 
@@ -58,7 +59,7 @@ export function explainAuthFailure(config: Config, rawMessage: string): string {
     return [
       rawMessage,
       "Bearer auth failed.",
-      `Make sure CLAUDE_USAGE_ENDPOINT is ${OAUTH_USAGE_ENDPOINT}.`,
+      `Make sure the app is using ${OAUTH_USAGE_ENDPOINT}.`,
       "If you just refreshed Claude credentials, restart the app so it picks up the new token.",
     ].join(" ");
   }
