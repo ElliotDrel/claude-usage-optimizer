@@ -1,4 +1,5 @@
-import { describe, it } from "node:test";
+import fs from "node:fs";
+import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 import { getConfig } from "../src/lib/config";
 
@@ -66,6 +67,30 @@ describe("getConfig", () => {
         assert.equal(config.endpoint, "https://api.anthropic.com/api/oauth/usage");
       }
     );
+  });
+
+  it("does not read local Claude credentials when cookie auth is set", () => {
+    const existsSyncMock = mock.method(fs, "existsSync", () => {
+      throw new Error("credentials file should not be checked");
+    });
+
+    try {
+      withEnv(
+        {
+          CLAUDE_SESSION_COOKIE: "session=value",
+          CLAUDE_BEARER_TOKEN: undefined,
+        },
+        () => {
+          const config = getConfig();
+          assert.equal(config.authMode, "cookie");
+          assert.equal(config.sessionCookie, "session=value");
+          assert.equal(config.bearerToken, "");
+          assert.equal(existsSyncMock.mock.callCount(), 0);
+        }
+      );
+    } finally {
+      existsSyncMock.mock.restore();
+    }
   });
 
   it("falls back to the legacy endpoint when auth-specific endpoints are unset", () => {

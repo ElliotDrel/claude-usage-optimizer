@@ -27,9 +27,11 @@ function tryReadClaudeCredentials(): string {
 }
 
 export function getConfig(): Config {
-  const bearerToken =
-    process.env.CLAUDE_BEARER_TOKEN?.trim() || tryReadClaudeCredentials();
   const sessionCookie = process.env.CLAUDE_SESSION_COOKIE?.trim() ?? "";
+  const envBearerToken = process.env.CLAUDE_BEARER_TOKEN?.trim() ?? "";
+  const bearerToken = sessionCookie
+    ? envBearerToken
+    : envBearerToken || tryReadClaudeCredentials();
 
   const authMode: Config["authMode"] = sessionCookie
     ? "cookie"
