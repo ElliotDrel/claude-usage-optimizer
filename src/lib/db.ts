@@ -27,6 +27,13 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_status
   ON usage_snapshots(status);
 `;
 
+const MIGRATIONS = `
+ALTER TABLE usage_snapshots ADD COLUMN extra_usage_enabled INTEGER;
+ALTER TABLE usage_snapshots ADD COLUMN extra_usage_monthly_limit REAL;
+ALTER TABLE usage_snapshots ADD COLUMN extra_usage_used_credits REAL;
+ALTER TABLE usage_snapshots ADD COLUMN extra_usage_utilization REAL;
+`;
+
 export function getDb(config: Config): Database.Database {
   if (db) return db;
 
@@ -34,6 +41,13 @@ export function getDb(config: Config): Database.Database {
   db = new Database(config.dbPath);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+  for (const stmt of MIGRATIONS.trim().split("\n").filter(Boolean)) {
+    try {
+      db.exec(stmt);
+    } catch {
+      // Column already exists — safe to ignore
+    }
+  }
   return db;
 }
 
@@ -48,6 +62,10 @@ export interface SnapshotRow {
   five_hour_resets_at: string | null;
   seven_day_utilization: number | null;
   seven_day_resets_at: string | null;
+  extra_usage_enabled: number | null;       // 0 or 1 (SQLite boolean)
+  extra_usage_monthly_limit: number | null;
+  extra_usage_used_credits: number | null;
+  extra_usage_utilization: number | null;
   raw_json: string | null;
   error_message: string | null;
 }
@@ -64,6 +82,10 @@ export function insertSnapshot(
     fiveHourResetsAt: string | null;
     sevenDayUtilization: number | null;
     sevenDayResetsAt: string | null;
+    extraUsageEnabled: boolean | null;
+    extraUsageMonthlyLimit: number | null;
+    extraUsageUsedCredits: number | null;
+    extraUsageUtilization: number | null;
     rawJson: string | null;
     errorMessage: string | null;
   }
@@ -74,8 +96,10 @@ export function insertSnapshot(
       (timestamp, status, endpoint, auth_mode, response_status,
        five_hour_utilization, five_hour_resets_at,
        seven_day_utilization, seven_day_resets_at,
+       extra_usage_enabled, extra_usage_monthly_limit,
+       extra_usage_used_credits, extra_usage_utilization,
        raw_json, error_message)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     data.timestamp,
     data.status,
@@ -86,6 +110,10 @@ export function insertSnapshot(
     data.fiveHourResetsAt,
     data.sevenDayUtilization,
     data.sevenDayResetsAt,
+    data.extraUsageEnabled != null ? (data.extraUsageEnabled ? 1 : 0) : null,
+    data.extraUsageMonthlyLimit,
+    data.extraUsageUsedCredits,
+    data.extraUsageUtilization,
     data.rawJson,
     data.errorMessage
   );
