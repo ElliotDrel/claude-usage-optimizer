@@ -201,6 +201,10 @@ export class UsageCollector {
         sevenDayResetsAt: null,
         rawJson: null,
         errorMessage: msg,
+        extraUsageEnabled: null,
+        extraUsageMonthlyLimit: null,
+        extraUsageUsedCredits: null,
+        extraUsageUtilization: null,
       });
       // No auth: schedule next in 10 minutes
       this.scheduleNext(10 * 60_000);
