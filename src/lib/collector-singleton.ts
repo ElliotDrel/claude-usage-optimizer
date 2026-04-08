@@ -12,9 +12,42 @@ const globalForCollector = globalThis as unknown as {
 
 // Seeded RNG for reproducible demo data
 let seed = 42;
-function seededRand() {
+function rand() {
   seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
   return seed / 0x7fffffff;
+}
+
+// Pre-generate work sessions for a given day.
+// Each session has a start hour, duration in hours, and intensity (how fast usage climbs).
+function generateSessions(dayOfWeek: number): { startHour: number; durationH: number; intensity: number }[] {
+  const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+  const sessions: { startHour: number; durationH: number; intensity: number }[] = [];
+
+  if (isWeekday) {
+    // 2-4 work sessions on weekdays
+    const count = 2 + Math.floor(rand() * 3); // 2-4
+    const possibleStarts = [8, 9, 10, 11, 13, 14, 15, 16, 19, 20];
+    for (let s = 0; s < count; s++) {
+      const idx = Math.floor(rand() * possibleStarts.length);
+      const start = possibleStarts.splice(idx, 1)[0];
+      sessions.push({
+        startHour: start,
+        durationH: 0.5 + rand() * 2, // 30min to 2.5h
+        intensity: 0.04 + rand() * 0.08, // 4-12% per 5min tick
+      });
+    }
+  } else {
+    // 0-2 light sessions on weekends
+    const count = Math.floor(rand() * 3); // 0-2
+    for (let s = 0; s < count; s++) {
+      sessions.push({
+        startHour: 10 + Math.floor(rand() * 8), // 10-17
+        durationH: 0.25 + rand() * 1, // 15min to 1.25h
+        intensity: 0.02 + rand() * 0.05, // lighter
+      });
+    }
+  }
+  return sessions;
 }
 
 function seedDemoData(config: import("./config").Config) {
@@ -27,12 +60,12 @@ function seedDemoData(config: import("./config").Config) {
 
   const db = getDb(config);
 
-  console.log("[demo] Generating 7 days of fake usage data...");
+  console.log("[demo] Generating 7 days of realistic usage data...");
   const now = Date.now();
   const SEVEN_DAYS = 7 * 24 * 60 * 60_000;
   const INTERVAL = 5 * 60_000;
-  const total = Math.floor(SEVEN_DAYS / INTERVAL); // 2016 snapshots
-  seed = 42; // reset for reproducibility
+  const total = Math.floor(SEVEN_DAYS / INTERVAL);
+  seed = 42;
 
   const insert = db.prepare(`
     INSERT INTO usage_snapshots
@@ -43,34 +76,64 @@ function seedDemoData(config: import("./config").Config) {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
+  // Pre-generate sessions for each of the 7 days
+  const startTs = now - SEVEN_DAYS;
+  const startDate = new Date(startTs);
+  const daySessions: { startHour: number; durationH: number; intensity: number }[][] = [];
+  for (let d = 0; d < 8; d++) {
+    const dayDate = new Date(startTs + d * 86400_000);
+    daySessions.push(generateSessions(dayDate.getDay()));
+  }
+
+  // State that carries across snapshots (0-100 scale to match real API)
+  let fiveHourUtil = 0;
+  let sevenDayUtil = 12 + rand() * 8; // start week at 12-20%
+  let lastResetHour = -1;
+
   const insertAll = db.transaction(() => {
     for (let i = total; i > 0; i--) {
       const ts = new Date(now - i * INTERVAL);
       const hour = ts.getHours();
-      const dayOfWeek = ts.getDay();
-      const isWorkHour = hour >= 9 && hour <= 17;
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      const minute = ts.getMinutes();
+      const hourFrac = hour + minute / 60;
 
-      let base: number;
-      if (isWeekday && isWorkHour) {
-        base = 0.35 + seededRand() * 0.35;
-      } else if (isWeekday) {
-        base = 0.05 + seededRand() * 0.2;
-      } else if (isWorkHour) {
-        base = 0.1 + seededRand() * 0.25;
-      } else {
-        base = 0.02 + seededRand() * 0.1;
+      // 5-hour window resets: utilization drops back near zero
+      const resetBucket = Math.floor(hour / 5);
+      if (resetBucket !== lastResetHour) {
+        lastResetHour = resetBucket;
+        fiveHourUtil = rand() * 3; // near zero after reset
       }
 
-      // Occasional spikes during work hours
-      if (isWorkHour && isWeekday && seededRand() < 0.1) {
-        base = Math.min(base + 0.3 + seededRand() * 0.2, 1);
+      // Check if any session is active right now
+      const dayIndex = Math.floor((ts.getTime() - startTs) / 86400_000);
+      const sessions = daySessions[Math.min(dayIndex, daySessions.length - 1)];
+      let inSession = false;
+      for (const s of sessions) {
+        if (hourFrac >= s.startHour && hourFrac < s.startHour + s.durationH) {
+          // Active session: usage climbs (intensity is 4-12 per tick)
+          fiveHourUtil = Math.min(fiveHourUtil + s.intensity * 100 * (0.7 + rand() * 0.6), 100);
+          sevenDayUtil = Math.min(sevenDayUtil + s.intensity * 0.5 * (0.5 + rand()), 100);
+          inSession = true;
+          break;
+        }
       }
 
-      const fiveHourUtil = Math.round(base * 1000) / 1000;
-      const dayProgress = (7 - i / (total / 7)) / 7;
-      const sevenDayUtil =
-        Math.round((0.15 + dayProgress * 0.25 + seededRand() * 0.1) * 1000) / 1000;
+      // Between sessions: usage stays flat with tiny drift
+      if (!inSession) {
+        fiveHourUtil = Math.max(0, fiveHourUtil + (rand() - 0.52) * 0.5);
+      }
+
+      // 7-day has a slow natural decay overnight
+      if (hour >= 0 && hour < 7 && !inSession) {
+        sevenDayUtil = Math.max(5, sevenDayUtil - 0.1 * rand());
+      }
+
+      const fiveHourResets = new Date(
+        ts.getTime() + ((5 - (hour % 5)) * 3600_000 - minute * 60_000)
+      ).toISOString();
+      const sevenDayResets = new Date(
+        ts.getTime() + 3 * 86400_000
+      ).toISOString();
 
       insert.run(
         ts.toISOString(),
@@ -78,10 +141,10 @@ function seedDemoData(config: import("./config").Config) {
         "demo",
         "demo",
         200,
-        fiveHourUtil,
-        new Date(ts.getTime() + (5 - (hour % 5)) * 3600_000).toISOString(),
-        sevenDayUtil,
-        new Date(ts.getTime() + 3 * 86400_000).toISOString(),
+        Math.round(fiveHourUtil * 10) / 10,
+        fiveHourResets,
+        Math.round(sevenDayUtil * 10) / 10,
+        sevenDayResets,
         JSON.stringify({ demo: true }),
         null
       );

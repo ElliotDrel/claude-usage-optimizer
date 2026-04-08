@@ -354,18 +354,59 @@ export class UsageCollector {
     }
   }
 
+  private demoFiveHour: number | null = null;
+  private demoSevenDay: number | null = null;
+  private demoLastResetBucket = -1;
+
   private async pollDemo(): Promise<{ status: string }> {
-    // Generate fake usage data that varies over time
     const now = new Date();
     const hour = now.getHours();
-    // Simulate usage that fluctuates: higher during work hours
-    const base = hour >= 9 && hour <= 17 ? 0.4 : 0.15;
-    const jitter = Math.random() * 0.25;
-    const fiveHourUtil = Math.min(base + jitter, 1);
-    const sevenDayUtil = Math.min(0.2 + Math.random() * 0.3, 1);
+    const minute = now.getMinutes();
+
+    // Initialize from last seeded snapshot on first poll (values are 0-100 scale)
+    if (this.demoFiveHour === null) {
+      try {
+        const { querySnapshots } = await import("./db");
+        const all = querySnapshots(this.config, { status: "ok" });
+        if (all.length) {
+          const last = all[all.length - 1];
+          this.demoFiveHour = last.five_hour_utilization ?? 0;
+          this.demoSevenDay = last.seven_day_utilization ?? 25;
+        }
+      } catch { /* fall through */ }
+      this.demoFiveHour ??= 30;
+      this.demoSevenDay ??= 25;
+      this.demoLastResetBucket = Math.floor(hour / 5);
+    }
+
+    // 5-hour window reset
+    const resetBucket = Math.floor(hour / 5);
+    if (resetBucket !== this.demoLastResetBucket) {
+      this.demoLastResetBucket = resetBucket;
+      this.demoFiveHour = Math.random() * 3;
+    }
+
+    // Simulate: during work hours, usage climbs; otherwise flat
+    const isWorkHour = hour >= 9 && hour <= 18;
+    const isWeekday = now.getDay() >= 1 && now.getDay() <= 5;
+
+    if (isWorkHour && isWeekday) {
+      // ~60% chance of being "in a session" during work hours
+      if (Math.random() < 0.6) {
+        const climb = 3 + Math.random() * 7; // 3-10% per tick
+        this.demoFiveHour = Math.min(this.demoFiveHour + climb, 100);
+        this.demoSevenDay = Math.min(this.demoSevenDay! + climb * 0.1, 100);
+      }
+    }
+
+    // Tiny drift between sessions
+    this.demoFiveHour = Math.max(0, this.demoFiveHour + (Math.random() - 0.52) * 0.5);
+
+    const fiveHourUtil = Math.round(this.demoFiveHour * 10) / 10;
+    const sevenDayUtil = Math.round(this.demoSevenDay! * 10) / 10;
 
     const fiveHourResets = new Date(
-      now.getTime() + (5 - (hour % 5)) * 3600_000
+      now.getTime() + ((5 - (hour % 5)) * 3600_000 - minute * 60_000)
     ).toISOString();
     const sevenDayResets = new Date(
       now.getTime() + 3 * 86400_000
@@ -391,7 +432,6 @@ export class UsageCollector {
     this.state.consecutiveFailures = 0;
     this.state.currentTier = "idle";
 
-    // Poll every 60s in demo mode (just to keep UI refreshing)
     this.scheduleNext(60_000);
 
     console.log(
