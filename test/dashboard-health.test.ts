@@ -35,6 +35,10 @@ function makeSnapshot(
     five_hour_resets_at: null,
     seven_day_utilization: null,
     seven_day_resets_at: null,
+    extra_usage_enabled: null,
+    extra_usage_monthly_limit: null,
+    extra_usage_used_credits: null,
+    extra_usage_utilization: null,
     raw_json: null,
     error_message: null,
     ...overrides,
@@ -87,11 +91,13 @@ describe("buildDashboardData health", () => {
         timestamp: "2026-04-06T10:00:00Z",
         fiveHourUtilization: 10,
         sevenDayUtilization: null,
+        extraUsageUsedCredits: null,
       },
       {
         timestamp: "2026-04-06T10:05:00Z",
         fiveHourUtilization: 15,
         sevenDayUtilization: null,
+        extraUsageUsedCredits: null,
       },
     ]);
 
