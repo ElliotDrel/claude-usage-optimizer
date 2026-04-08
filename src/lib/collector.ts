@@ -435,7 +435,7 @@ export class UsageCollector {
     this.scheduleNext(60_000);
 
     console.log(
-      `[collector] Demo poll: 5h=${(fiveHourUtil * 100).toFixed(1)}%, 7d=${(sevenDayUtil * 100).toFixed(1)}%`
+      `[collector] Demo poll: 5h=${fiveHourUtil.toFixed(1)}%, 7d=${sevenDayUtil.toFixed(1)}%`
     );
     return { status: "ok" };
   }

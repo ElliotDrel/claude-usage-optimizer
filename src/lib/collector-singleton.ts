@@ -78,9 +78,8 @@ function seedDemoData(config: import("./config").Config) {
 
   // Pre-generate sessions for each of the 7 days
   const startTs = now - SEVEN_DAYS;
-  const startDate = new Date(startTs);
   const daySessions: { startHour: number; durationH: number; intensity: number }[][] = [];
-  for (let d = 0; d < 8; d++) {
+  for (let d = 0; d < 7; d++) {
     const dayDate = new Date(startTs + d * 86400_000);
     daySessions.push(generateSessions(dayDate.getDay()));
   }

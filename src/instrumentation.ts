@@ -5,11 +5,9 @@ export async function register() {
     const collector = getCollector();
     console.log("[instrumentation] Collector started");
 
-    // Auto-open browser
-    const port = process.env.PORT || "3017";
-    const url = `http://localhost:${port}`;
+    // Auto-open browser (port must match -p flag in package.json)
     const { exec } = await import("node:child_process");
-    exec(`start "" "${url}"`);
+    exec('start "" "http://localhost:3017"');
 
     const shutdown = () => {
       collector.stop();
