@@ -187,7 +187,7 @@ export default function DashboardPage() {
             </Section>
           </div>
           <div className="lg:col-span-1">
-            <Section title="Extra Usage" label="Paid Credits">
+            <Section title="Extra Usage" label="Balance & Spend">
               <ExtraUsageCard data={data} />
             </Section>
           </div>

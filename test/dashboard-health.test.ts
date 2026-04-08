@@ -92,12 +92,14 @@ describe("buildDashboardData health", () => {
         fiveHourUtilization: 10,
         sevenDayUtilization: null,
         extraUsageUsedCredits: null,
+        extraUsageBalance: null,
       },
       {
         timestamp: "2026-04-06T10:05:00Z",
         fiveHourUtilization: 15,
         sevenDayUtilization: null,
         extraUsageUsedCredits: null,
+        extraUsageBalance: null,
       },
     ]);
 

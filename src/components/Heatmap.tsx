@@ -5,7 +5,6 @@ import type { DashboardData } from "@/lib/analysis";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function intensityToColor(intensity: number): string {
-  // From deep charcoal through warm amber stages
   if (intensity === 0) return "var(--bg-elevated)";
   if (intensity < 0.25) return "rgba(212, 160, 86, 0.12)";
   if (intensity < 0.5) return "rgba(212, 160, 86, 0.28)";
@@ -33,7 +32,6 @@ export function Heatmap({ data }: { data: DashboardData | null }) {
           gridTemplateColumns: `40px repeat(24, minmax(14px, 1fr))`,
         }}
       >
-        {/* Hour labels header */}
         <div />
         {Array.from({ length: 24 }, (_, h) => (
           <div
@@ -49,7 +47,6 @@ export function Heatmap({ data }: { data: DashboardData | null }) {
           </div>
         ))}
 
-        {/* Day rows */}
         {DAY_LABELS.map((day, dayIdx) => (
           <div key={`row-${dayIdx}`} className="contents">
             <div
@@ -74,7 +71,7 @@ export function Heatmap({ data }: { data: DashboardData | null }) {
                     backgroundColor: intensityToColor(intensity),
                     border: "1px solid var(--border-subtle)",
                   }}
-                  title={`${day} ${hour}:00 — usage increase: +${cell?.totalDelta.toFixed(2) ?? 0}%`}
+                  title={`${day} ${hour}:00 - activity score: ${cell?.totalDelta.toFixed(2) ?? 0}`}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = "var(--accent)";
                     e.currentTarget.style.transform = "scale(1.15)";
@@ -92,7 +89,6 @@ export function Heatmap({ data }: { data: DashboardData | null }) {
         ))}
       </div>
 
-      {/* Legend */}
       <div
         className="flex items-center justify-end gap-2 mt-3 pt-3"
         style={{ borderTop: "1px solid var(--border-subtle)" }}

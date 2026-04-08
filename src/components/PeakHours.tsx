@@ -62,7 +62,7 @@ export function PeakHours({ data }: { data: DashboardData | null }) {
             }}
             labelStyle={{ color: "var(--text-tertiary)" }}
             itemStyle={{ color: "var(--text-primary)" }}
-            formatter={(value) => [`+${Number(value).toFixed(1)}%`, "Usage increase"]}
+            formatter={(value) => [`${Number(value).toFixed(2)}`, "Activity score"]}
             labelFormatter={(hour) => `${hour}:00`}
             cursor={{ fill: "rgba(180, 155, 110, 0.06)" }}
           />

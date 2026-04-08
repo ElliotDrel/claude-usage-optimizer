@@ -109,6 +109,11 @@ export function computePollingDelta(
   return computeUsageDelta(prevUtil, currUtil, prevResetAt, currResetAt);
 }
 
+function centsToDollars(value: number | null): number | null {
+  if (value == null) return null;
+  return Math.round(value) / 100;
+}
+
 // --- CollectorState ---
 
 export interface CollectorState {
@@ -282,8 +287,8 @@ export class UsageCollector {
         rawJson: JSON.stringify(payload),
         errorMessage: null,
         extraUsageEnabled: normalized.extraUsage?.isEnabled ?? null,
-        extraUsageMonthlyLimit: normalized.extraUsage?.monthlyLimit ?? null,
-        extraUsageUsedCredits: normalized.extraUsage?.usedCredits ?? null,
+        extraUsageMonthlyLimit: centsToDollars(normalized.extraUsage?.monthlyLimit ?? null),
+        extraUsageUsedCredits: centsToDollars(normalized.extraUsage?.usedCredits ?? null),
         extraUsageUtilization: normalized.extraUsage?.utilization ?? null,
       });
 

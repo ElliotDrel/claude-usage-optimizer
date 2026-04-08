@@ -139,4 +139,20 @@ describe("db helpers", () => {
       ["2026-04-06T09:00:00Z", "2026-04-06T10:00:00Z"]
     );
   });
+
+  it("stores extra usage amounts in dollars", () => {
+    insert({
+      timestamp: "2026-04-06T13:00:00Z",
+      extraUsageEnabled: true,
+      extraUsageMonthlyLimit: 3,
+      extraUsageUsedCredits: 2.83,
+      extraUsageUtilization: 94.3,
+    });
+
+    const rows = querySnapshots(config, { since: "2026-04-06T13:00:00Z" });
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].extra_usage_monthly_limit, 3);
+    assert.equal(rows[0].extra_usage_used_credits, 2.83);
+    assert.equal(rows[0].extra_usage_utilization, 94.3);
+  });
 });

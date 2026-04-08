@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { DashboardData } from "@/lib/analysis";
 import {
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -17,7 +18,8 @@ import { format } from "date-fns";
 const COLORS = {
   fiveHour: "#d4a056",
   sevenDay: "#7ba3c9",
-  extraCredits: "#c97bb5",
+  extraSpent: "#c97bb5",
+  extraBalance: "#63b6a8",
 };
 
 type TimeRange = "1d" | "7d" | "all";
@@ -35,7 +37,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
     if (!data?.timeline.length) return [];
 
     const now = Date.now();
-    const cutoff = RANGE_CONFIG[range].ms ? now - RANGE_CONFIG[range].ms! : 0;
+    const cutoff = RANGE_CONFIG[range].ms ? now - RANGE_CONFIG[range].ms : 0;
 
     return data.timeline
       .filter((point) => new Date(point.timestamp).getTime() >= cutoff)
@@ -43,7 +45,8 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
         time: new Date(point.timestamp).getTime(),
         "5-Hour": point.fiveHourUtilization,
         "7-Day": point.sevenDayUtilization,
-        "Extra Credits ($)": point.extraUsageUsedCredits,
+        "Extra Spent ($)": point.extraUsageUsedCredits,
+        "Extra Balance ($)": point.extraUsageBalance,
       }));
   }, [data, range]);
 
@@ -89,9 +92,9 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
                 <stop offset="0%" stopColor={COLORS.sevenDay} stopOpacity={0.2} />
                 <stop offset="100%" stopColor={COLORS.sevenDay} stopOpacity={0} />
               </linearGradient>
-              <linearGradient id="gradExtra" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLORS.extraCredits} stopOpacity={0.2} />
-                <stop offset="100%" stopColor={COLORS.extraCredits} stopOpacity={0} />
+              <linearGradient id="gradBalance" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={COLORS.extraBalance} stopOpacity={0.18} />
+                <stop offset="100%" stopColor={COLORS.extraBalance} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid
@@ -125,7 +128,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               tick={{ fill: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${v}`}
+              tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
             />
             <Tooltip
               contentStyle={{
@@ -137,11 +140,11 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               }}
               labelStyle={{ color: "var(--text-tertiary)", marginBottom: "4px" }}
               itemStyle={{ color: "var(--text-primary)", padding: "2px 0" }}
-              labelFormatter={(ts) =>
-                format(new Date(ts as number), "MMM d, yyyy HH:mm")
-              }
+              labelFormatter={(ts) => format(new Date(ts as number), "MMM d, yyyy HH:mm")}
               formatter={(value, name) => {
-                if (name === "Extra Credits ($)") return [`$${Number(value).toFixed(2)}`];
+                if (name === "Extra Spent ($)" || name === "Extra Balance ($)") {
+                  return [`$${Number(value).toFixed(2)}`];
+                }
                 return [`${Number(value).toFixed(1)}%`];
               }}
             />
@@ -159,12 +162,16 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               stroke={COLORS.fiveHour}
               fill="url(#grad5h)"
               strokeWidth={2}
-              dot={range === "1d" ? {
-                r: 2,
-                fill: COLORS.fiveHour,
-                stroke: "var(--bg-surface)",
-                strokeWidth: 1,
-              } : false}
+              dot={
+                range === "1d"
+                  ? {
+                      r: 2,
+                      fill: COLORS.fiveHour,
+                      stroke: "var(--bg-surface)",
+                      strokeWidth: 1,
+                    }
+                  : false
+              }
               connectNulls
               activeDot={{
                 r: 4,
@@ -180,12 +187,16 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               stroke={COLORS.sevenDay}
               fill="url(#grad7d)"
               strokeWidth={2}
-              dot={range === "1d" ? {
-                r: 2,
-                fill: COLORS.sevenDay,
-                stroke: "var(--bg-surface)",
-                strokeWidth: 1,
-              } : false}
+              dot={
+                range === "1d"
+                  ? {
+                      r: 2,
+                      fill: COLORS.sevenDay,
+                      stroke: "var(--bg-surface)",
+                      strokeWidth: 1,
+                    }
+                  : false
+              }
               connectNulls
               activeDot={{
                 r: 4,
@@ -197,20 +208,31 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
             <Area
               yAxisId="credits"
               type="monotone"
-              dataKey="Extra Credits ($)"
-              stroke={COLORS.extraCredits}
-              fill="url(#gradExtra)"
+              dataKey="Extra Balance ($)"
+              stroke={COLORS.extraBalance}
+              fill="url(#gradBalance)"
               strokeWidth={2}
-              dot={range === "1d" ? {
-                r: 2,
-                fill: COLORS.extraCredits,
-                stroke: "var(--bg-surface)",
-                strokeWidth: 1,
-              } : false}
+              dot={false}
               connectNulls
               activeDot={{
                 r: 4,
-                fill: COLORS.extraCredits,
+                fill: COLORS.extraBalance,
+                stroke: "var(--bg-surface)",
+                strokeWidth: 2,
+              }}
+            />
+            <Line
+              yAxisId="credits"
+              type="monotone"
+              dataKey="Extra Spent ($)"
+              stroke={COLORS.extraSpent}
+              strokeWidth={2}
+              strokeDasharray="5 3"
+              dot={false}
+              connectNulls
+              activeDot={{
+                r: 4,
+                fill: COLORS.extraSpent,
                 stroke: "var(--bg-surface)",
                 strokeWidth: 2,
               }}

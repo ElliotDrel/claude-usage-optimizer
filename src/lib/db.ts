@@ -25,6 +25,11 @@ CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_status
   ON usage_snapshots(status);
+
+CREATE TABLE IF NOT EXISTS app_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 const MIGRATIONS = `
@@ -41,14 +46,46 @@ export function getDb(config: Config): Database.Database {
   db = new Database(config.dbPath);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+
   for (const stmt of MIGRATIONS.trim().split("\n").filter(Boolean)) {
     try {
       db.exec(stmt);
     } catch {
-      // Column already exists — safe to ignore
+      // Column already exists; safe to ignore.
     }
   }
+
+  migrateExtraUsageMoneyToDollars(db);
   return db;
+}
+
+function migrateExtraUsageMoneyToDollars(db: Database.Database): void {
+  const migrationKey = "extra_usage_money_unit";
+  const current = db
+    .prepare("SELECT value FROM app_meta WHERE key = ?")
+    .get(migrationKey) as { value: string } | undefined;
+
+  if (current?.value === "dollars") {
+    return;
+  }
+
+  const transaction = db.transaction(() => {
+    db.prepare(`
+      UPDATE usage_snapshots
+      SET
+        extra_usage_monthly_limit = ROUND(extra_usage_monthly_limit / 100.0, 2),
+        extra_usage_used_credits = ROUND(extra_usage_used_credits / 100.0, 2)
+      WHERE extra_usage_monthly_limit IS NOT NULL OR extra_usage_used_credits IS NOT NULL
+    `).run();
+
+    db.prepare(`
+      INSERT INTO app_meta (key, value)
+      VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(migrationKey, "dollars");
+  });
+
+  transaction();
 }
 
 export interface SnapshotRow {
@@ -62,7 +99,7 @@ export interface SnapshotRow {
   five_hour_resets_at: string | null;
   seven_day_utilization: number | null;
   seven_day_resets_at: string | null;
-  extra_usage_enabled: number | null;       // 0 or 1 (SQLite boolean)
+  extra_usage_enabled: number | null;
   extra_usage_monthly_limit: number | null;
   extra_usage_used_credits: number | null;
   extra_usage_utilization: number | null;
@@ -150,7 +187,9 @@ export function querySnapshots(
 
 export function getDbMeta(config: Config) {
   const db = getDb(config);
-  const count = (db.prepare("SELECT COUNT(*) as cnt FROM usage_snapshots").get() as { cnt: number }).cnt;
+  const count = (
+    db.prepare("SELECT COUNT(*) as cnt FROM usage_snapshots").get() as { cnt: number }
+  ).cnt;
   const stat = fs.statSync(config.dbPath);
   return {
     path: config.dbPath,

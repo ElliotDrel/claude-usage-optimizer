@@ -246,4 +246,92 @@ describe("buildDashboardData", () => {
     assert.equal(result.usageInsights.largestDelta?.window, "5H");
     assert.equal(result.usageInsights.largestDelta?.at, "2026-04-06T10:05:00Z");
   });
+
+  it("uses dollar-valued extra usage fields from the database", () => {
+    const snapshots = [
+      makeSnapshot({
+        timestamp: "2026-04-06T10:00:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 3,
+        extra_usage_used_credits: 1.2,
+        extra_usage_utilization: 40,
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    assert.equal(result.current?.extraUsage?.monthlyLimit, 3);
+    assert.equal(result.current?.extraUsage?.usedCredits, 1.2);
+    assert.equal(result.current?.extraUsage?.balance, 1.8);
+    assert.equal(result.timeline[0].extraUsageUsedCredits, 1.2);
+    assert.equal(result.timeline[0].extraUsageBalance, 1.8);
+  });
+
+  it("tracks extra usage top-ups and spend events", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 1,
+        extra_usage_used_credits: 0.1,
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 2,
+        extra_usage_used_credits: 0.1,
+      }),
+      makeSnapshot({
+        id: 3,
+        timestamp: "2026-04-06T10:10:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 2,
+        extra_usage_used_credits: 0.45,
+      }),
+      makeSnapshot({
+        id: 4,
+        timestamp: "2026-04-06T10:15:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 3,
+        extra_usage_used_credits: 0.6,
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    assert.equal(result.extraUsageInsights.currentBalance, 2.4);
+    assert.equal(result.extraUsageInsights.totalBudget, 3);
+    assert.equal(result.extraUsageInsights.totalSpent, 0.6);
+    assert.equal(result.extraUsageInsights.topUpCount, 2);
+    assert.equal(result.extraUsageInsights.totalTopUps, 2);
+    assert.equal(result.extraUsageInsights.spendEventCount, 2);
+    assert.equal(result.extraUsageInsights.trackedSpend, 0.5);
+    assert.equal(result.extraUsageInsights.lastTopUpAt, "2026-04-06T10:15:00Z");
+    assert.equal(result.extraUsageInsights.lastSpendAt, "2026-04-06T10:15:00Z");
+    assert.equal(result.extraUsageInsights.largestTopUp?.amount, 1);
+    assert.equal(result.extraUsageInsights.largestSpend?.amount, 0.35);
+  });
+
+  it("weights extra usage activity in dollars instead of cents", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-06T10:00:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 5,
+        extra_usage_used_credits: 1,
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-04-06T10:05:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 5,
+        extra_usage_used_credits: 3,
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    const hour = new Date("2026-04-06T10:05:00Z").getHours();
+    assert.equal(result.activity.hourlyBars[hour].totalDelta, 2);
+  });
 });
