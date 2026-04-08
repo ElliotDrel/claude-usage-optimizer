@@ -8,6 +8,7 @@ import { UsageTimeline } from "@/components/UsageTimeline";
 import { PeakHours } from "@/components/PeakHours";
 import { Heatmap } from "@/components/Heatmap";
 import { ExtraUsage } from "@/components/ExtraUsage";
+import { ExtraUsageCard } from "@/components/ExtraUsageCard";
 
 export default function DashboardPage() {
   const [data, setData] = useState<(DashboardData & { demoMode?: boolean }) | null>(null);
@@ -175,14 +176,19 @@ export default function DashboardPage() {
 
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-1">
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <Section title="Collector" label="System Health">
               <CollectorHealth data={data} />
             </Section>
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Section title="Utilization" label="Current">
               <UsageCards data={data} />
+            </Section>
+          </div>
+          <div className="lg:col-span-2">
+            <Section title="Extra Usage" label="Paid Credits">
+              <ExtraUsageCard data={data} />
             </Section>
           </div>
         </div>
@@ -203,7 +209,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="animate-fade-up stagger-4">
-          <Section title="Extra Data" label="Additional Fields">
+          <Section title="Raw API Response" label="All Fields">
             <ExtraUsage data={data} />
           </Section>
         </div>
