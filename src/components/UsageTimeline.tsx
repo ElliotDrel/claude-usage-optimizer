@@ -35,7 +35,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
 
   return (
     <div className="h-72 -mx-2">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
           <defs>
             <linearGradient id="grad5h" x1="0" y1="0" x2="0" y2="1">

@@ -32,7 +32,7 @@ export function PeakHours({ data }: { data: DashboardData | null }) {
 
   return (
     <div className="h-56 -mx-2">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
           <CartesianGrid
             strokeDasharray="3 3"
