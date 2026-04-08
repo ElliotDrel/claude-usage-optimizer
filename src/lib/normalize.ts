@@ -16,9 +16,17 @@ export interface NormalizedExtra {
   value: unknown;
 }
 
+export interface ExtraUsageData {
+  isEnabled: boolean;
+  monthlyLimit: number | null;
+  usedCredits: number | null;
+  utilization: number | null;
+}
+
 export interface NormalizedPayload {
   windows: NormalizedWindow[];
   extras: NormalizedExtra[];
+  extraUsage: ExtraUsageData | null;
   unknownKeys: Record<string, unknown>;
 }
 
@@ -46,6 +54,7 @@ export function normalizeUsagePayload(
   const windows: NormalizedWindow[] = [];
   const extras: NormalizedExtra[] = [];
   const unknownKeys: Record<string, unknown> = {};
+  let extraUsage: ExtraUsageData | null = null;
 
   for (const [key, value] of Object.entries(payload)) {
     if (isUsageBucket(value)) {
@@ -56,6 +65,14 @@ export function normalizeUsagePayload(
         resetsAt: value.resets_at,
       });
     } else if (key === "extra_usage" && value && typeof value === "object") {
+      const eu = value as Record<string, unknown>;
+      extraUsage = {
+        isEnabled: eu.is_enabled === true,
+        monthlyLimit: typeof eu.monthly_limit === "number" ? eu.monthly_limit : null,
+        usedCredits: typeof eu.used_credits === "number" ? eu.used_credits : null,
+        utilization: typeof eu.utilization === "number" ? eu.utilization : null,
+      };
+      // Still push to extras for raw display
       extras.push({ key, label: toLabel(key), value });
     } else {
       unknownKeys[key] = value;
@@ -63,5 +80,5 @@ export function normalizeUsagePayload(
   }
 
   windows.sort((a, b) => a.label.localeCompare(b.label));
-  return { windows, extras, unknownKeys };
+  return { windows, extras, extraUsage, unknownKeys };
 }
