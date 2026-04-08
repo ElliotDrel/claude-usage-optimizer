@@ -17,6 +17,7 @@ import { format } from "date-fns";
 const COLORS = {
   fiveHour: "#d4a056",
   sevenDay: "#7ba3c9",
+  extraCredits: "#c97bb5",
 };
 
 type TimeRange = "1d" | "7d" | "all";
@@ -42,6 +43,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
         time: new Date(point.timestamp).getTime(),
         "5-Hour": point.fiveHourUtilization,
         "7-Day": point.sevenDayUtilization,
+        "Extra Credits ($)": point.extraUsageUsedCredits,
       }));
   }, [data, range]);
 
@@ -87,6 +89,10 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
                 <stop offset="0%" stopColor={COLORS.sevenDay} stopOpacity={0.2} />
                 <stop offset="100%" stopColor={COLORS.sevenDay} stopOpacity={0} />
               </linearGradient>
+              <linearGradient id="gradExtra" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={COLORS.extraCredits} stopOpacity={0.2} />
+                <stop offset="100%" stopColor={COLORS.extraCredits} stopOpacity={0} />
+              </linearGradient>
             </defs>
             <CartesianGrid
               strokeDasharray="3 3"
@@ -104,12 +110,22 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               axisLine={false}
             />
             <YAxis
+              yAxisId="utilization"
               domain={[0, 100]}
               stroke="transparent"
               tick={{ fill: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 10 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => `${v}%`}
+            />
+            <YAxis
+              yAxisId="credits"
+              orientation="right"
+              stroke="transparent"
+              tick={{ fill: "var(--text-tertiary)", fontFamily: "var(--font-mono)", fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `$${v}`}
             />
             <Tooltip
               contentStyle={{
@@ -124,7 +140,10 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               labelFormatter={(ts) =>
                 format(new Date(ts as number), "MMM d, yyyy HH:mm")
               }
-              formatter={(value) => [`${Number(value).toFixed(1)}%`]}
+              formatter={(value, name) => {
+                if (name === "Extra Credits ($)") return [`$${Number(value).toFixed(2)}`];
+                return [`${Number(value).toFixed(1)}%`];
+              }}
             />
             <Legend
               wrapperStyle={{
@@ -134,6 +153,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               }}
             />
             <Area
+              yAxisId="utilization"
               type="monotone"
               dataKey="5-Hour"
               stroke={COLORS.fiveHour}
@@ -154,6 +174,7 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               }}
             />
             <Area
+              yAxisId="utilization"
               type="monotone"
               dataKey="7-Day"
               stroke={COLORS.sevenDay}
@@ -169,6 +190,27 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
               activeDot={{
                 r: 4,
                 fill: COLORS.sevenDay,
+                stroke: "var(--bg-surface)",
+                strokeWidth: 2,
+              }}
+            />
+            <Area
+              yAxisId="credits"
+              type="monotone"
+              dataKey="Extra Credits ($)"
+              stroke={COLORS.extraCredits}
+              fill="url(#gradExtra)"
+              strokeWidth={2}
+              dot={range === "1d" ? {
+                r: 2,
+                fill: COLORS.extraCredits,
+                stroke: "var(--bg-surface)",
+                strokeWidth: 1,
+              } : false}
+              connectNulls
+              activeDot={{
+                r: 4,
+                fill: COLORS.extraCredits,
                 stroke: "var(--bg-surface)",
                 strokeWidth: 2,
               }}
