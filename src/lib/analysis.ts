@@ -19,6 +19,14 @@ export interface TimelinePoint {
   timestamp: string;
   fiveHourUtilization: number | null;
   sevenDayUtilization: number | null;
+  extraUsageUsedCredits: number | null;
+}
+
+export interface ExtraUsageSnapshot {
+  isEnabled: boolean;
+  monthlyLimit: number | null;
+  usedCredits: number | null;
+  utilization: number | null;
 }
 
 export interface DashboardData {
@@ -35,6 +43,7 @@ export interface DashboardData {
     timestamp: string;
     fiveHour: { utilization: number; resetsAt: string } | null;
     sevenDay: { utilization: number; resetsAt: string } | null;
+    extraUsage: ExtraUsageSnapshot | null;
     rawJson: Record<string, unknown> | null;
   } | null;
   timeline: TimelinePoint[];
@@ -105,17 +114,25 @@ function buildActivity(snapshots: SnapshotRow[]) {
     const curr = okSnapshots[i];
 
     const newUsage = computeDelta(prev, curr, "five_hour");
-    if (newUsage <= 0) continue;
+
+    // Extra usage credit delta — spending credits = high-priority usage
+    const prevCredits = prev.extra_usage_used_credits ?? 0;
+    const currCredits = curr.extra_usage_used_credits ?? 0;
+    const creditDelta = Math.max(0, currCredits - prevCredits);
+
+    // Weight extra usage: $1 spent ≈ 1% utilization point for activity weighting
+    const totalActivity = newUsage + creditDelta;
+    if (totalActivity <= 0) continue;
 
     const ts = new Date(curr.timestamp);
     const dayIndex = ts.getDay();
     const hour = ts.getHours();
 
-    hourlyBars[hour].totalDelta += newUsage;
+    hourlyBars[hour].totalDelta += totalActivity;
     hourlyBars[hour].sampleCount++;
 
     const cell = heatmap[dayIndex * 24 + hour];
-    cell.totalDelta += newUsage;
+    cell.totalDelta += totalActivity;
     cell.sampleCount++;
   }
 
@@ -209,6 +226,15 @@ export function buildDashboardData(
               resetsAt: lastSuccess.seven_day_resets_at!,
             }
           : null,
+      extraUsage:
+        lastSuccess.extra_usage_enabled != null
+          ? {
+              isEnabled: lastSuccess.extra_usage_enabled === 1,
+              monthlyLimit: lastSuccess.extra_usage_monthly_limit,
+              usedCredits: lastSuccess.extra_usage_used_credits,
+              utilization: lastSuccess.extra_usage_utilization,
+            }
+          : null,
       rawJson: safeParseJson(lastSuccess.raw_json),
     };
   }
@@ -217,6 +243,7 @@ export function buildDashboardData(
     timestamp: s.timestamp,
     fiveHourUtilization: s.five_hour_utilization,
     sevenDayUtilization: s.seven_day_utilization,
+    extraUsageUsedCredits: s.extra_usage_used_credits,
   }));
 
   return {
