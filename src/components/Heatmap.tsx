@@ -74,7 +74,7 @@ export function Heatmap({ data }: { data: DashboardData | null }) {
                     backgroundColor: intensityToColor(intensity),
                     border: "1px solid var(--border-subtle)",
                   }}
-                  title={`${day} ${hour}:00 — delta: ${cell?.totalDelta.toFixed(2) ?? 0}`}
+                  title={`${day} ${hour}:00 — usage increase: +${cell?.totalDelta.toFixed(2) ?? 0}%`}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = "var(--accent)";
                     e.currentTarget.style.transform = "scale(1.15)";

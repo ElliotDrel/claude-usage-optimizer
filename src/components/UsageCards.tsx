@@ -147,7 +147,7 @@ export function UsageCards({ data }: { data: DashboardData | null }) {
               className="text-[10px] tracking-[0.15em] uppercase mb-1"
               style={{ color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}
             >
-              Largest Delta
+              Biggest Spike
             </p>
             {data.usageInsights.largestDelta ? (
               <>
