@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3017",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3017",
     "startup:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-startup.ps1",
     "startup:restart": "powershell -ExecutionPolicy Bypass -File .\\scripts\\restart-startup.ps1",
     "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",
