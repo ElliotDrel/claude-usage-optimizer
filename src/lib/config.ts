@@ -47,11 +47,21 @@ function tryReadClaudeCredentials(): string {
   }
 }
 
+function parseBooleanEnv(value: string | undefined): boolean | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  return undefined;
+}
+
 export function getConfig(): Config {
   const host = process.env.APP_HOST?.trim() || "localhost";
   const port = parseInt(process.env.PORT ?? "3017", 10);
   const appUrl = `http://${host}:${port}`;
   const autoOpenBrowser = process.env.AUTO_OPEN_BROWSER === "true";
+  const isDevelopment = process.env.NODE_ENV === "development";
+  const devDemoMode = parseBooleanEnv(process.env.DEV_DEMO_MODE);
+  const prodDemoMode = parseBooleanEnv(process.env.PROD_DEMO_MODE);
   const sessionCookie = process.env.CLAUDE_SESSION_COOKIE?.trim() ?? "";
   const envBearerToken = process.env.CLAUDE_BEARER_TOKEN?.trim() ?? "";
   const bearerToken = sessionCookie
@@ -86,7 +96,10 @@ export function getConfig(): Config {
       ? cookieEndpoint || bearerEndpoint
       : bearerEndpoint;
 
-  const demoMode = process.env.DEMO_MODE === "true";
+  const demoMode =
+    isDevelopment
+      ? (devDemoMode ?? true)
+      : (prodDemoMode ?? false);
 
   return {
     host,

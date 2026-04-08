@@ -32,12 +32,15 @@ function withEnv(
 }
 
 describe("getConfig", () => {
-  it("uses localhost defaults and keeps browser auto-open off by default", () => {
+  it("uses localhost defaults, keeps browser auto-open off, and defaults dev to demo mode", () => {
     withEnv(
       {
         APP_HOST: undefined,
         PORT: undefined,
         AUTO_OPEN_BROWSER: undefined,
+        DEV_DEMO_MODE: undefined,
+        PROD_DEMO_MODE: undefined,
+        NODE_ENV: "development",
       },
       () => {
         const config = getConfig();
@@ -45,6 +48,7 @@ describe("getConfig", () => {
         assert.equal(config.port, 3017);
         assert.equal(config.appUrl, "http://localhost:3017");
         assert.equal(config.autoOpenBrowser, false);
+        assert.equal(config.demoMode, true);
       }
     );
   });
@@ -62,6 +66,48 @@ describe("getConfig", () => {
         assert.equal(config.port, 3018);
         assert.equal(config.appUrl, "http://127.0.0.1:3018");
         assert.equal(config.autoOpenBrowser, true);
+      }
+    );
+  });
+
+  it("allows dev mode to opt out of demo data explicitly", () => {
+    withEnv(
+      {
+        DEV_DEMO_MODE: "false",
+        PROD_DEMO_MODE: undefined,
+        NODE_ENV: "development",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.demoMode, false);
+      }
+    );
+  });
+
+  it("keeps production mode real by default", () => {
+    withEnv(
+      {
+        DEV_DEMO_MODE: undefined,
+        PROD_DEMO_MODE: undefined,
+        NODE_ENV: "production",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.demoMode, false);
+      }
+    );
+  });
+
+  it("allows production mode to opt into demo data explicitly", () => {
+    withEnv(
+      {
+        DEV_DEMO_MODE: undefined,
+        PROD_DEMO_MODE: "true",
+        NODE_ENV: "production",
+      },
+      () => {
+        const config = getConfig();
+        assert.equal(config.demoMode, true);
       }
     );
   });

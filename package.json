@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3017",
+    "dev": "set APP_HOST=localhost&& set PORT=3017&& set AUTO_OPEN_BROWSER=true&& next dev --hostname localhost --port 3017",
     "build": "next build",
-    "start": "next start -p 3017",
+    "start": "next start",
+    "start:prod": "set APP_HOST=127.0.0.1&& set PORT=3018&& set AUTO_OPEN_BROWSER=false&& next start --hostname 127.0.0.1 --port 3018",
     "startup:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\install-startup.ps1",
     "startup:restart": "powershell -ExecutionPolicy Bypass -File .\\scripts\\restart-startup.ps1",
     "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",

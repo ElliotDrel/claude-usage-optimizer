@@ -36,7 +36,8 @@ export function UsageTimeline({ data }: { data: DashboardData | null }) {
   const chartData = useMemo(() => {
     if (!data?.timeline.length) return [];
 
-    const now = Date.now();
+    const latestPoint = data.timeline[data.timeline.length - 1];
+    const now = new Date(latestPoint.timestamp).getTime();
     const cutoff = RANGE_CONFIG[range].ms ? now - RANGE_CONFIG[range].ms : 0;
 
     return data.timeline

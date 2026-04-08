@@ -9,7 +9,10 @@ import type { Config } from "../src/lib/config";
 
 function makeConfig(overrides: Partial<Config> = {}): Config {
   return {
+    host: "localhost",
     port: 3017,
+    appUrl: "http://localhost:3017",
+    autoOpenBrowser: false,
     dataDir: "data",
     dbPath: "data/usage.db",
     endpoint: OAUTH_USAGE_ENDPOINT,

@@ -1,6 +1,6 @@
 param(
     [string]$BindHost = "127.0.0.1",
-    [int]$Port = 3017
+    [int]$Port = 3018
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,6 +13,10 @@ if (-not (Test-Path $buildIdPath)) {
 }
 
 Set-Location $repoRoot
+
+$env:APP_HOST = $BindHost
+$env:PORT = "$Port"
+$env:AUTO_OPEN_BROWSER = "false"
 
 $npm = Get-Command "npm.cmd" -ErrorAction Stop
 $arguments = @("run", "start", "--", "--hostname", $BindHost, "--port", "$Port")

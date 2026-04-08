@@ -9,7 +9,10 @@ import type { Config } from "../src/lib/config";
 const dbPath = path.join(os.tmpdir(), `test-usage-${Date.now()}.db`);
 
 const config: Config = {
+  host: "localhost",
   port: 3017,
+  appUrl: "http://localhost:3017",
+  autoOpenBrowser: false,
   dataDir: os.tmpdir(),
   dbPath,
   endpoint: "https://api.anthropic.com/api/oauth/usage",
