@@ -277,6 +277,10 @@ export class UsageCollector {
         sevenDayResetsAt: sevenDay?.resetsAt ?? null,
         rawJson: JSON.stringify(payload),
         errorMessage: null,
+        extraUsageEnabled: normalized.extraUsage?.isEnabled ?? null,
+        extraUsageMonthlyLimit: normalized.extraUsage?.monthlyLimit ?? null,
+        extraUsageUsedCredits: normalized.extraUsage?.usedCredits ?? null,
+        extraUsageUtilization: normalized.extraUsage?.utilization ?? null,
       });
 
       // Compute delta using normalized hour-aligned reset boundaries.
@@ -330,6 +334,10 @@ export class UsageCollector {
         sevenDayResetsAt: null,
         rawJson: null,
         errorMessage: msg,
+        extraUsageEnabled: null,
+        extraUsageMonthlyLimit: null,
+        extraUsageUsedCredits: null,
+        extraUsageUtilization: null,
       });
 
       // Update tier with failure
@@ -424,6 +432,10 @@ export class UsageCollector {
       sevenDayResetsAt: sevenDayResets,
       rawJson: JSON.stringify({ demo: true }),
       errorMessage: null,
+      extraUsageEnabled: null,
+      extraUsageMonthlyLimit: null,
+      extraUsageUsedCredits: null,
+      extraUsageUtilization: null,
     });
 
     this.state.lastAttemptAt = now.toISOString();
