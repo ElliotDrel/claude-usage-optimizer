@@ -181,12 +181,12 @@ export default function DashboardPage() {
               <CollectorHealth data={data} />
             </Section>
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <Section title="Utilization" label="Current">
               <UsageCards data={data} />
             </Section>
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Section title="Extra Usage" label="Paid Credits">
               <ExtraUsageCard data={data} />
             </Section>
