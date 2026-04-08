@@ -12,5 +12,5 @@ export async function GET() {
   const snapshots = querySnapshots(config);
   const meta = getDbMeta(config);
   const data = buildDashboardData(snapshots, meta, collector.getState());
-  return NextResponse.json(data);
+  return NextResponse.json({ ...data, demoMode: config.demoMode });
 }

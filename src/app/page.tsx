@@ -10,7 +10,7 @@ import { Heatmap } from "@/components/Heatmap";
 import { ExtraUsage } from "@/components/ExtraUsage";
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<(DashboardData & { demoMode?: boolean }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
   const [pollCooldown, setPollCooldown] = useState<number | null>(null);
@@ -157,6 +157,21 @@ export default function DashboardPage() {
           }}
         />
       </header>
+
+      {data?.demoMode && (
+        <div
+          className="mb-6 px-4 py-2.5 rounded-lg text-xs tracking-wider uppercase text-center"
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "var(--accent)",
+            background: "var(--accent-dim)",
+            border: "1px solid var(--accent)",
+            opacity: 0.85,
+          }}
+        >
+          Demo Mode — Displaying simulated data
+        </div>
+      )}
 
       <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-1">
