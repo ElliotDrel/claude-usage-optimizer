@@ -28,6 +28,23 @@ describe("normalizeUsagePayload", () => {
     assert.equal(result.extras[0].key, "extra_usage");
   });
 
+  it("extracts structured extra usage fields", () => {
+    const payload = {
+      extra_usage: {
+        is_enabled: true,
+        monthly_limit: 100000,
+        used_credits: 283,
+        utilization: 0.283,
+      },
+    };
+
+    const result = normalizeUsagePayload(payload);
+    assert.equal(result.extraUsage?.isEnabled, true);
+    assert.equal(result.extraUsage?.monthlyLimit, 100000);
+    assert.equal(result.extraUsage?.usedCredits, 283);
+    assert.equal(result.extraUsage?.utilization, 0.283);
+  });
+
   it("puts unknown keys in unknownKeys", () => {
     const payload = {
       five_hour: { utilization: 10, resets_at: "2026-04-06T20:00:00Z" },

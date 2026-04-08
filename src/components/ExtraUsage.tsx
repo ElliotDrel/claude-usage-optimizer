@@ -7,7 +7,7 @@ export function ExtraUsage({ data }: { data: DashboardData | null }) {
   if (!rawJson) {
     return (
       <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-        No extra usage data.
+        No raw API response available.
       </p>
     );
   }
@@ -20,7 +20,7 @@ export function ExtraUsage({ data }: { data: DashboardData | null }) {
   if (!extraKeys.length) {
     return (
       <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-        No extra usage data beyond standard windows.
+        No additional API fields beyond the standard usage windows.
       </p>
     );
   }

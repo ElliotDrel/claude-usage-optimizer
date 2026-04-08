@@ -334,4 +334,31 @@ describe("buildDashboardData", () => {
     const hour = new Date("2026-04-06T10:05:00Z").getHours();
     assert.equal(result.activity.hourlyBars[hour].totalDelta, 2);
   });
+
+  it("counts post-reset extra usage spend in activity and insights", () => {
+    const snapshots = [
+      makeSnapshot({
+        id: 1,
+        timestamp: "2026-04-30T23:55:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 10,
+        extra_usage_used_credits: 9.8,
+      }),
+      makeSnapshot({
+        id: 2,
+        timestamp: "2026-05-01T00:05:00Z",
+        extra_usage_enabled: 1,
+        extra_usage_monthly_limit: 10,
+        extra_usage_used_credits: 0.2,
+      }),
+    ];
+
+    const result = buildDashboardData(snapshots, mockStorage, mockRuntime);
+    const hour = new Date("2026-05-01T00:05:00Z").getHours();
+    assert.equal(result.activity.hourlyBars[hour].totalDelta, 0.2);
+    assert.equal(result.extraUsageInsights.spendEventCount, 1);
+    assert.equal(result.extraUsageInsights.trackedSpend, 0.2);
+    assert.equal(result.extraUsageInsights.lastSpendAt, "2026-05-01T00:05:00Z");
+    assert.equal(result.extraUsageInsights.largestSpend?.amount, 0.2);
+  });
 });

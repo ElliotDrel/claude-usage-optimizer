@@ -95,6 +95,17 @@ function computeBalance(limit: number | null, used: number | null): number | nul
   return round2(Math.max(0, limit - used));
 }
 
+function computeExtraUsageSpendDelta(
+  prevUsed: number | null,
+  currUsed: number | null
+): number {
+  if (currUsed == null || prevUsed == null) return 0;
+  if (currUsed < prevUsed) {
+    return currUsed;
+  }
+  return Math.max(0, currUsed - prevUsed);
+}
+
 function safeParseJson(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null;
   try {
@@ -138,9 +149,10 @@ function buildActivity(snapshots: SnapshotRow[]) {
     const curr = okSnapshots[i];
 
     const newUsage = computeDelta(prev, curr, "five_hour");
-    const prevCredits = prev.extra_usage_used_credits ?? 0;
-    const currCredits = curr.extra_usage_used_credits ?? 0;
-    const creditDelta = Math.max(0, currCredits - prevCredits);
+    const creditDelta = computeExtraUsageSpendDelta(
+      prev.extra_usage_used_credits,
+      curr.extra_usage_used_credits
+    );
     const totalActivity = newUsage + creditDelta;
     if (totalActivity <= 0) continue;
 
@@ -242,10 +254,10 @@ function buildExtraUsageInsights(snapshots: SnapshotRow[]): ExtraUsageInsights {
       prev.extra_usage_monthly_limit != null && curr.extra_usage_monthly_limit != null
         ? curr.extra_usage_monthly_limit - prev.extra_usage_monthly_limit
         : 0;
-    const spendDelta =
-      prev.extra_usage_used_credits != null && curr.extra_usage_used_credits != null
-        ? curr.extra_usage_used_credits - prev.extra_usage_used_credits
-        : 0;
+    const spendDelta = computeExtraUsageSpendDelta(
+      prev.extra_usage_used_credits,
+      curr.extra_usage_used_credits
+    );
 
     if (budgetDelta > 0) {
       const amount = round2(budgetDelta);
