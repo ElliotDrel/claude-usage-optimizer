@@ -111,13 +111,76 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by /gsd-plan-phase) | — | Pending |
+| SCHED-01 | Phase 4 — Scheduler Wiring | Pending |
+| SCHED-02 | Phase 2 — Algorithm Core | Pending |
+| SCHED-03 | Phase 2 — Algorithm Core | Pending |
+| SCHED-04 | Phase 2 — Algorithm Core | Pending |
+| SCHED-05 | Phase 2 — Algorithm Core | Pending |
+| SCHED-06 | Phase 2 — Algorithm Core | Pending |
+| SCHED-07 | Phase 2 — Algorithm Core | Pending |
+| SCHED-08 | Phase 2 — Algorithm Core | Pending |
+| SCHED-09 | Phase 2 — Algorithm Core | Pending |
+| SCHED-10 | Phase 4 — Scheduler Wiring | Pending |
+| SCHED-11 | Phase 4 — Scheduler Wiring | Pending |
+| SCHED-12 | Phase 4 — Scheduler Wiring | Pending |
+| SEND-01 | Phase 3 — Sender Module | Pending |
+| SEND-02 | Phase 3 — Sender Module | Pending |
+| SEND-03 | Phase 3 — Sender Module | Pending |
+| SEND-04 | Phase 3 — Sender Module | Pending |
+| SEND-05 | Phase 3 — Sender Module | Pending |
+| SEND-06 | Phase 3 — Sender Module | Pending |
+| DATA-01 | Phase 1 — Foundation & DB Refactor | Pending |
+| DATA-02 | Phase 1 — Foundation & DB Refactor | Pending |
+| DATA-03 | Phase 3 — Sender Module | Pending |
+| DATA-04 | Phase 4 — Scheduler Wiring | Pending |
+| DATA-05 | Phase 1 — Foundation & DB Refactor | Pending |
+| DATA-06 | Phase 1 — Foundation & DB Refactor | Pending |
+| DATA-07 | Phase 6 — VM Deployment & Hardening | Pending |
+| DATA-08 | Phase 6 — VM Deployment & Hardening | Pending |
+| UI-01 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-02 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-03 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-04 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-05 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-06 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-07 | Phase 5 — Dashboard Control Surface | Pending |
+| UI-08 | Phase 1 — Foundation & DB Refactor | Pending |
+| INSTALL-01 | Phase 7 — Installer & Onboarding | Pending |
+| INSTALL-02 | Phase 7 — Installer & Onboarding | Pending |
+| INSTALL-03 | Phase 7 — Installer & Onboarding | Pending |
+| INSTALL-04 | Phase 7 — Installer & Onboarding | Pending |
+| NOTIFY-01 | Phase 6 — VM Deployment & Hardening | Pending |
+| NOTIFY-02 | Phase 6 — VM Deployment & Hardening | Pending |
+| NOTIFY-03 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-01 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-02 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-03 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-04 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-05 | Phase 6 — VM Deployment & Hardening | Pending |
+| DEPLOY-06 | Phase 1 — Foundation & DB Refactor | Pending |
+| QUAL-01 | Phase 8 — Quality & Acceptance | Pending |
+| QUAL-02 | Phase 8 — Quality & Acceptance | Pending |
+| QUAL-03 | Phase 6 — VM Deployment & Hardening | Pending |
+| QUAL-04 | Phase 6 — VM Deployment & Hardening | Pending |
 
 **Coverage:**
-- v1 requirements: 45 total
-- Mapped to phases: 0 (pre-roadmap)
-- Unmapped: 45 ⚠️ (expected pre-roadmap)
+- v1 requirements: 51 total
+- Mapped to phases: 51 ✓
+- Unmapped: 0
+
+**By phase:**
+
+| Phase | Requirement count | Requirement IDs |
+|-------|-------------------|-----------------|
+| 1. Foundation & DB Refactor | 6 | DATA-01, DATA-02, DATA-05, DATA-06, UI-08, DEPLOY-06 |
+| 2. Algorithm Core (Pure Modules) | 8 | SCHED-02, SCHED-03, SCHED-04, SCHED-05, SCHED-06, SCHED-07, SCHED-08, SCHED-09 |
+| 3. Sender Module | 7 | SEND-01, SEND-02, SEND-03, SEND-04, SEND-05, SEND-06, DATA-03 |
+| 4. Scheduler Wiring | 5 | SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04 |
+| 5. Dashboard Control Surface | 7 | UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07 |
+| 6. VM Deployment & Hardening | 12 | DATA-07, DATA-08, DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, DEPLOY-05, NOTIFY-01, NOTIFY-02, NOTIFY-03, QUAL-03, QUAL-04 |
+| 7. Installer & Onboarding | 4 | INSTALL-01, INSTALL-02, INSTALL-03, INSTALL-04 |
+| 8. Quality & Acceptance | 2 | QUAL-01, QUAL-02 |
 
 ---
 *Requirements defined: 2026-04-16*
-*Last updated: 2026-04-16 after initial definition*
+*Last updated: 2026-04-16 after roadmap creation — traceability table populated*
