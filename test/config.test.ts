@@ -48,6 +48,7 @@ describe("getConfig", () => {
         assert.equal(config.port, 3017);
         assert.equal(config.appUrl, "http://localhost:3017");
         assert.equal(config.autoOpenBrowser, false);
+        assert.equal(config.orgId, "");
         assert.equal(config.demoMode, true);
       }
     );
@@ -123,6 +124,7 @@ describe("getConfig", () => {
         assert.equal(config.authMode, "cookie");
         assert.equal(config.hasAuth, true);
         assert.equal(config.appUrl, "http://localhost:3017");
+        assert.equal(config.orgId, "test-org");
         assert.equal(
           config.endpoint,
           "https://claude.ai/api/organizations/test-org/usage"
@@ -181,6 +183,10 @@ describe("getConfig", () => {
       },
       () => {
         const config = getConfig();
+        assert.equal(
+          config.orgId,
+          "env-org"
+        );
         assert.equal(
           config.endpoint,
           "https://claude.ai/api/organizations/env-org/usage"

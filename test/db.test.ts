@@ -15,6 +15,7 @@ const config: Config = {
   autoOpenBrowser: false,
   dataDir: os.tmpdir(),
   dbPath,
+  orgId: "",
   endpoint: "https://api.anthropic.com/api/oauth/usage",
   bearerToken: "",
   sessionCookie: "",

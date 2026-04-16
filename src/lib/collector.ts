@@ -114,6 +114,41 @@ function centsToDollars(value: number | null): number | null {
   return Math.round(value) / 100;
 }
 
+function parseJson(rawBody: string): Record<string, unknown> | null {
+  try {
+    return rawBody ? (JSON.parse(rawBody) as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildCookieOrgEndpoint(orgId: string, path: string): string {
+  return `https://claude.ai/api/organizations/${orgId}/${path}`;
+}
+
+async function fetchJson(
+  url: string,
+  headers: Record<string, string>
+): Promise<{ status: number; payload: Record<string, unknown> }> {
+  const response = await fetch(url, { headers });
+  const rawBody = await response.text();
+  const payload = parseJson(rawBody);
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP ${response.status}: ${(
+        payload ? JSON.stringify(payload) : rawBody
+      ).slice(0, 500)}`
+    );
+  }
+
+  if (!payload) {
+    throw new Error(`HTTP ${response.status} with non-JSON body`);
+  }
+
+  return { status: response.status, payload };
+}
+
 // --- CollectorState ---
 
 export interface CollectorState {
@@ -248,43 +283,50 @@ export class UsageCollector {
         headers.Cookie = this.config.sessionCookie;
       }
 
-      const response = await fetch(this.config.endpoint, { headers });
-      const rawBody = await response.text();
-
-      let payload: Record<string, unknown> | null = null;
-      try {
-        payload = rawBody ? JSON.parse(rawBody) : null;
-      } catch {
-        payload = null;
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}: ${(
-            payload ? JSON.stringify(payload) : rawBody
-          ).slice(0, 500)}`
-        );
-      }
-
-      if (!payload) {
-        throw new Error(`HTTP ${response.status} with non-JSON body`);
-      }
+      const { status: responseStatus, payload } = await fetchJson(this.config.endpoint, headers);
 
       const normalized = normalizeUsagePayload(payload);
       const fiveHour = normalized.windows.find((w) => w.key === "five_hour");
       const sevenDay = normalized.windows.find((w) => w.key === "seven_day");
+
+      let rawJson: string;
+      if (this.config.authMode === "cookie" && this.config.orgId) {
+        const endpointResults = await Promise.allSettled([
+          fetchJson(buildCookieOrgEndpoint(this.config.orgId, "overage_spend_limit"), headers),
+          fetchJson(buildCookieOrgEndpoint(this.config.orgId, "prepaid/credits"), headers),
+          fetchJson(buildCookieOrgEndpoint(this.config.orgId, "prepaid/bundles"), headers),
+          fetchJson(buildCookieOrgEndpoint(this.config.orgId, "overage_credit_grant"), headers),
+          fetchJson(buildCookieOrgEndpoint(this.config.orgId, "payment_method"), headers),
+        ]);
+
+        rawJson = JSON.stringify({
+          usage: payload,
+          overage_spend_limit:
+            endpointResults[0].status === "fulfilled" ? endpointResults[0].value.payload : null,
+          prepaid_credits:
+            endpointResults[1].status === "fulfilled" ? endpointResults[1].value.payload : null,
+          prepaid_bundles:
+            endpointResults[2].status === "fulfilled" ? endpointResults[2].value.payload : null,
+          overage_credit_grant:
+            endpointResults[3].status === "fulfilled" ? endpointResults[3].value.payload : null,
+          payment_method:
+            endpointResults[4].status === "fulfilled" ? endpointResults[4].value.payload : null,
+        });
+      } else {
+        rawJson = JSON.stringify(payload);
+      }
 
       insertSnapshot(this.config, {
         timestamp: new Date().toISOString(),
         status: "ok",
         endpoint: this.config.endpoint,
         authMode: this.config.authMode,
-        responseStatus: response.status,
+        responseStatus,
         fiveHourUtilization: fiveHour?.utilization ?? null,
         fiveHourResetsAt: fiveHour?.resetsAt ?? null,
         sevenDayUtilization: sevenDay?.utilization ?? null,
         sevenDayResetsAt: sevenDay?.resetsAt ?? null,
-        rawJson: JSON.stringify(payload),
+        rawJson,
         errorMessage: null,
         extraUsageEnabled: normalized.extraUsage?.isEnabled ?? null,
         extraUsageMonthlyLimit: centsToDollars(normalized.extraUsage?.monthlyLimit ?? null),

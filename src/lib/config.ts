@@ -9,6 +9,7 @@ export interface Config {
   autoOpenBrowser: boolean;
   dataDir: string;
   dbPath: string;
+  orgId: string;
   endpoint: string;
   bearerToken: string;
   sessionCookie: string;
@@ -108,6 +109,7 @@ export function getConfig(): Config {
     autoOpenBrowser,
     dataDir,
     dbPath: path.join(dataDir, demoMode ? "demo.db" : "usage.db"),
+    orgId,
     endpoint,
     bearerToken,
     sessionCookie,

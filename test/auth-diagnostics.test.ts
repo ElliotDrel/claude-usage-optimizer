@@ -15,6 +15,7 @@ function makeConfig(overrides: Partial<Config> = {}): Config {
     autoOpenBrowser: false,
     dataDir: "data",
     dbPath: "data/usage.db",
+    orgId: "",
     endpoint: OAUTH_USAGE_ENDPOINT,
     bearerToken: "",
     sessionCookie: "",
