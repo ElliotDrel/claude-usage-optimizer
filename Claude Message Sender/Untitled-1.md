@@ -1,0 +1,1 @@
+I need to go through all the data that we are collecting and revise the UI to first of all show it all. Second, I need to update the database to not store a broken-up version of the JSON and instead just parse the JSON for the data that we need to show in the UI.
