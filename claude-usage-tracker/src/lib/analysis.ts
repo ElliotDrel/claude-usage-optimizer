@@ -1,6 +1,6 @@
-import type { SnapshotRow } from "./db";
 import type { CollectorState } from "./collector";
 import { computeUsageDelta } from "./usage-window";
+import { type ParsedSnapshot } from "./queries";
 
 export interface HourlyBar {
   hour: number;
@@ -56,9 +56,9 @@ export interface DashboardData {
     totalSnapshots: number;
     successCount: number;
     errorCount: number;
-    lastSnapshot: SnapshotRow | null;
-    lastSuccess: SnapshotRow | null;
-    recentErrors: SnapshotRow[];
+    lastSnapshot: ParsedSnapshot | null;
+    lastSuccess: ParsedSnapshot | null;
+    recentErrors: ParsedSnapshot[];
   };
   current: {
     timestamp: string;
@@ -116,19 +116,18 @@ function safeParseJson(raw: string | null): Record<string, unknown> | null {
 }
 
 function computeDelta(
-  prev: SnapshotRow,
-  curr: SnapshotRow,
+  prev: ParsedSnapshot,
+  curr: ParsedSnapshot,
   windowKey: "five_hour" | "seven_day"
 ): number {
-  return computeUsageDelta(
-    prev[`${windowKey}_utilization`],
-    curr[`${windowKey}_utilization`],
-    prev[`${windowKey}_resets_at`],
-    curr[`${windowKey}_resets_at`]
-  );
+  const prevUtil = windowKey === "five_hour" ? prev.five_hour_utilization : prev.seven_day_utilization;
+  const currUtil = windowKey === "five_hour" ? curr.five_hour_utilization : curr.seven_day_utilization;
+  const prevReset = windowKey === "five_hour" ? prev.five_hour_resets_at : prev.seven_day_resets_at;
+  const currReset = windowKey === "five_hour" ? curr.five_hour_resets_at : curr.seven_day_resets_at;
+  return computeUsageDelta(prevUtil, currUtil, prevReset, currReset);
 }
 
-function buildActivity(snapshots: SnapshotRow[]) {
+function buildActivity(snapshots: ParsedSnapshot[]) {
   const hourlyBars: HourlyBar[] = Array.from({ length: 24 }, (_, h) => ({
     hour: h,
     totalDelta: 0,
@@ -174,7 +173,7 @@ function buildActivity(snapshots: SnapshotRow[]) {
   };
 }
 
-function buildUsageInsights(snapshots: SnapshotRow[]) {
+function buildUsageInsights(snapshots: ParsedSnapshot[]) {
   const okSnapshots = snapshots.filter((s) => s.status === "ok");
 
   let lastUsageAt: string | null = null;
@@ -233,7 +232,7 @@ function buildUsageInsights(snapshots: SnapshotRow[]) {
   };
 }
 
-function buildExtraUsageInsights(snapshots: SnapshotRow[]): ExtraUsageInsights {
+function buildExtraUsageInsights(snapshots: ParsedSnapshot[]): ExtraUsageInsights {
   const okSnapshots = snapshots.filter((s) => s.status === "ok");
   const lastSuccess = okSnapshots.at(-1) ?? null;
 
@@ -299,7 +298,7 @@ function buildExtraUsageInsights(snapshots: SnapshotRow[]): ExtraUsageInsights {
 }
 
 export function buildDashboardData(
-  snapshots: SnapshotRow[],
+  snapshots: ParsedSnapshot[],
   storageMeta: { path: string; sizeBytes: number; totalSnapshots: number },
   runtime: CollectorState
 ): DashboardData {
@@ -332,7 +331,7 @@ export function buildDashboardData(
       extraUsage:
         lastSuccess.extra_usage_enabled != null
           ? {
-              isEnabled: lastSuccess.extra_usage_enabled === 1,
+              isEnabled: lastSuccess.extra_usage_enabled === true,
               monthlyLimit,
               usedCredits,
               balance: computeBalance(monthlyLimit, usedCredits),
