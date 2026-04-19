@@ -12,7 +12,7 @@ Rebuild the two-subproject (Python sender + Next.js tracker) system into a singl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering.
+- [x] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering. *(Completed 2026-04-19)*
 - [ ] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring.
 - [ ] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, retries, `send_log` writes) plus `POST /api/send-now` for manual-fire testing.
 - [ ] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle.
@@ -35,11 +35,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. No structured-column reads remain anywhere in the codebase — all reads go through `queries.ts` or `json_extract`.
 **Plans**: 5 plans
 Plans:
-- [ ] 01-01-PLAN.md — Delete Claude Message Sender/ and claude-usage-tracker/.env.local (DEPLOY-06)
-- [ ] 01-02-PLAN.md — Simplified schema, SnapshotRow, insertSnapshot, idempotent migrator, db.test.ts (DATA-01, DATA-02, DATA-05)
-- [ ] 01-03-PLAN.md — Create queries.ts (ParsedSnapshot, parseSnapshot, parseSnapshots) and queries.test.ts (DATA-06)
-- [ ] 01-04-PLAN.md — Simplify collector.ts write path + collector-singleton.ts demo seeder (DATA-01)
-- [ ] 01-05-PLAN.md — Route analysis.ts through ParsedSnapshot, wire dashboard/route.ts, update analysis.test.ts (DATA-06, UI-08)
+- [x] 01-01-PLAN.md — Delete Claude Message Sender/ and claude-usage-tracker/.env.local (DEPLOY-06)
+- [x] 01-02-PLAN.md — Simplified schema, SnapshotRow, insertSnapshot, idempotent migrator, db.test.ts (DATA-01, DATA-02, DATA-05)
+- [x] 01-03-PLAN.md — Create queries.ts (ParsedSnapshot, parseSnapshot, parseSnapshots) and queries.test.ts (DATA-06)
+- [x] 01-04-PLAN.md — Simplify collector.ts write path + collector-singleton.ts demo seeder (DATA-01)
+- [x] 01-05-PLAN.md — Route analysis.ts through ParsedSnapshot, wire dashboard/route.ts, update analysis.test.ts (DATA-06, UI-08)
 
 ### Phase 2: Algorithm Core (Pure Modules)
 **Goal**: Peak detection and schedule generation exist as pure, independently-tested functions that, given snapshots and options, return a deterministic peak block and a 5-fire daily chain — with no runtime wiring yet.
@@ -139,7 +139,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & DB Refactor | 0/5 | Not started | - |
+| 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
 | 2. Algorithm Core (Pure Modules) | 0/TBD | Not started | - |
 | 3. Sender Module | 0/TBD | Not started | - |
 | 4. Scheduler Wiring | 0/TBD | Not started | - |
