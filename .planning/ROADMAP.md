@@ -33,7 +33,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Re-running the app after migration is a no-op (migrator is idempotent).
   4. Every existing dashboard panel (heatmap, hourly bars, usage timeline, extra-usage card) still renders correctly, now sourcing its fields from `raw_json` via `queries.ts`.
   5. No structured-column reads remain anywhere in the codebase — all reads go through `queries.ts` or `json_extract`.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 01-01-PLAN.md — Delete Claude Message Sender/ and claude-usage-tracker/.env.local (DEPLOY-06)
+- [ ] 01-02-PLAN.md — Simplified schema, SnapshotRow, insertSnapshot, idempotent migrator, db.test.ts (DATA-01, DATA-02, DATA-05)
+- [ ] 01-03-PLAN.md — Create queries.ts (ParsedSnapshot, parseSnapshot, parseSnapshots) and queries.test.ts (DATA-06)
+- [ ] 01-04-PLAN.md — Simplify collector.ts write path + collector-singleton.ts demo seeder (DATA-01)
+- [ ] 01-05-PLAN.md — Route analysis.ts through ParsedSnapshot, wire dashboard/route.ts, update analysis.test.ts (DATA-06, UI-08)
 
 ### Phase 2: Algorithm Core (Pure Modules)
 **Goal**: Peak detection and schedule generation exist as pure, independently-tested functions that, given snapshots and options, return a deterministic peak block and a 5-fire daily chain — with no runtime wiring yet.
@@ -133,7 +139,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & DB Refactor | 0/TBD | Not started | - |
+| 1. Foundation & DB Refactor | 0/5 | Not started | - |
 | 2. Algorithm Core (Pure Modules) | 0/TBD | Not started | - |
 | 3. Sender Module | 0/TBD | Not started | - |
 | 4. Scheduler Wiring | 0/TBD | Not started | - |
