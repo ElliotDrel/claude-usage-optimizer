@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { buildDashboardData } from "../src/lib/analysis";
-import type { SnapshotRow } from "../src/lib/db";
+import type { ParsedSnapshot } from "../src/lib/queries";
 import type { CollectorState } from "../src/lib/collector";
 
 const mockRuntime: CollectorState = {
@@ -22,13 +22,12 @@ const mockRuntime: CollectorState = {
 const mockStorage = { path: "data/usage.db", sizeBytes: 4096, totalSnapshots: 2 };
 
 function makeSnapshot(
-  overrides: Partial<SnapshotRow> & { timestamp: string }
-): SnapshotRow {
+  overrides: Partial<ParsedSnapshot> & { timestamp: string }
+): ParsedSnapshot {
   return {
     id: 1,
     status: "ok",
     endpoint: "test",
-    auth_mode: "bearer",
     response_status: 200,
     five_hour_utilization: null,
     five_hour_resets_at: null,
@@ -251,7 +250,7 @@ describe("buildDashboardData", () => {
     const snapshots = [
       makeSnapshot({
         timestamp: "2026-04-06T10:00:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 3,
         extra_usage_used_credits: 1.2,
         extra_usage_utilization: 40,
@@ -271,28 +270,28 @@ describe("buildDashboardData", () => {
       makeSnapshot({
         id: 1,
         timestamp: "2026-04-06T10:00:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 1,
         extra_usage_used_credits: 0.1,
       }),
       makeSnapshot({
         id: 2,
         timestamp: "2026-04-06T10:05:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 2,
         extra_usage_used_credits: 0.1,
       }),
       makeSnapshot({
         id: 3,
         timestamp: "2026-04-06T10:10:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 2,
         extra_usage_used_credits: 0.45,
       }),
       makeSnapshot({
         id: 4,
         timestamp: "2026-04-06T10:15:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 3,
         extra_usage_used_credits: 0.6,
       }),
@@ -317,14 +316,14 @@ describe("buildDashboardData", () => {
       makeSnapshot({
         id: 1,
         timestamp: "2026-04-06T10:00:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 5,
         extra_usage_used_credits: 1,
       }),
       makeSnapshot({
         id: 2,
         timestamp: "2026-04-06T10:05:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 5,
         extra_usage_used_credits: 3,
       }),
@@ -340,14 +339,14 @@ describe("buildDashboardData", () => {
       makeSnapshot({
         id: 1,
         timestamp: "2026-04-30T23:55:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 10,
         extra_usage_used_credits: 9.8,
       }),
       makeSnapshot({
         id: 2,
         timestamp: "2026-05-01T00:05:00Z",
-        extra_usage_enabled: 1,
+        extra_usage_enabled: true,
         extra_usage_monthly_limit: 10,
         extra_usage_used_credits: 0.2,
       }),
