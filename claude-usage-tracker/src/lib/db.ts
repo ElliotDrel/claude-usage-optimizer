@@ -10,12 +10,7 @@ CREATE TABLE IF NOT EXISTS usage_snapshots (
   timestamp TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'ok',
   endpoint TEXT,
-  auth_mode TEXT,
   response_status INTEGER,
-  five_hour_utilization REAL,
-  five_hour_resets_at TEXT,
-  seven_day_utilization REAL,
-  seven_day_resets_at TEXT,
   raw_json TEXT,
   error_message TEXT
 );
@@ -32,12 +27,66 @@ CREATE TABLE IF NOT EXISTS app_meta (
 );
 `;
 
-const MIGRATIONS = `
-ALTER TABLE usage_snapshots ADD COLUMN extra_usage_enabled INTEGER;
-ALTER TABLE usage_snapshots ADD COLUMN extra_usage_monthly_limit REAL;
-ALTER TABLE usage_snapshots ADD COLUMN extra_usage_used_credits REAL;
-ALTER TABLE usage_snapshots ADD COLUMN extra_usage_utilization REAL;
-`;
+function migrateToSimplifiedSchema(db: Database.Database): void {
+  const current = db
+    .prepare("SELECT value FROM app_meta WHERE key = 'schema_version'")
+    .get() as { value: string } | undefined;
+
+  if (current?.value === "simplified-v1") {
+    return;
+  }
+
+  const migrate = db.transaction(() => {
+    const cols = db
+      .prepare("PRAGMA table_info(usage_snapshots)")
+      .all() as { name: string }[];
+    const hasAuthMode = cols.some((c) => c.name === "auth_mode");
+
+    if (hasAuthMode) {
+      db.exec(`
+        CREATE TABLE usage_snapshots_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ok',
+          endpoint TEXT,
+          response_status INTEGER,
+          raw_json TEXT,
+          error_message TEXT
+        );
+
+        INSERT INTO usage_snapshots_new
+          (id, timestamp, status, endpoint, response_status, raw_json, error_message)
+        SELECT
+          id, timestamp, status, endpoint, response_status, raw_json, error_message
+        FROM usage_snapshots;
+
+        DROP TABLE usage_snapshots;
+
+        ALTER TABLE usage_snapshots_new RENAME TO usage_snapshots;
+
+        CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp
+          ON usage_snapshots(timestamp);
+
+        CREATE INDEX IF NOT EXISTS idx_snapshots_status
+          ON usage_snapshots(status);
+      `);
+    }
+
+    db.prepare(`
+      INSERT INTO app_meta (key, value)
+      VALUES ('schema_version', 'simplified-v1')
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run();
+
+    db.prepare(`
+      INSERT INTO app_meta (key, value)
+      VALUES ('migrated_at', ?)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run(new Date().toISOString());
+  });
+
+  migrate();
+}
 
 export function getDb(config: Config): Database.Database {
   if (db) return db;
@@ -47,45 +96,8 @@ export function getDb(config: Config): Database.Database {
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
 
-  for (const stmt of MIGRATIONS.trim().split("\n").filter(Boolean)) {
-    try {
-      db.exec(stmt);
-    } catch {
-      // Column already exists; safe to ignore.
-    }
-  }
-
-  migrateExtraUsageMoneyToDollars(db);
+  migrateToSimplifiedSchema(db);
   return db;
-}
-
-function migrateExtraUsageMoneyToDollars(db: Database.Database): void {
-  const migrationKey = "extra_usage_money_unit";
-  const current = db
-    .prepare("SELECT value FROM app_meta WHERE key = ?")
-    .get(migrationKey) as { value: string } | undefined;
-
-  if (current?.value === "dollars") {
-    return;
-  }
-
-  const transaction = db.transaction(() => {
-    db.prepare(`
-      UPDATE usage_snapshots
-      SET
-        extra_usage_monthly_limit = ROUND(extra_usage_monthly_limit / 100.0, 2),
-        extra_usage_used_credits = ROUND(extra_usage_used_credits / 100.0, 2)
-      WHERE extra_usage_monthly_limit IS NOT NULL OR extra_usage_used_credits IS NOT NULL
-    `).run();
-
-    db.prepare(`
-      INSERT INTO app_meta (key, value)
-      VALUES (?, ?)
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value
-    `).run(migrationKey, "dollars");
-  });
-
-  transaction();
 }
 
 export interface SnapshotRow {
@@ -93,16 +105,7 @@ export interface SnapshotRow {
   timestamp: string;
   status: string;
   endpoint: string | null;
-  auth_mode: string | null;
   response_status: number | null;
-  five_hour_utilization: number | null;
-  five_hour_resets_at: string | null;
-  seven_day_utilization: number | null;
-  seven_day_resets_at: string | null;
-  extra_usage_enabled: number | null;
-  extra_usage_monthly_limit: number | null;
-  extra_usage_used_credits: number | null;
-  extra_usage_utilization: number | null;
   raw_json: string | null;
   error_message: string | null;
 }
@@ -113,16 +116,7 @@ export function insertSnapshot(
     timestamp: string;
     status: string;
     endpoint: string;
-    authMode: string;
     responseStatus: number;
-    fiveHourUtilization: number | null;
-    fiveHourResetsAt: string | null;
-    sevenDayUtilization: number | null;
-    sevenDayResetsAt: string | null;
-    extraUsageEnabled: boolean | null;
-    extraUsageMonthlyLimit: number | null;
-    extraUsageUsedCredits: number | null;
-    extraUsageUtilization: number | null;
     rawJson: string | null;
     errorMessage: string | null;
   }
@@ -130,27 +124,13 @@ export function insertSnapshot(
   const db = getDb(config);
   db.prepare(`
     INSERT INTO usage_snapshots
-      (timestamp, status, endpoint, auth_mode, response_status,
-       five_hour_utilization, five_hour_resets_at,
-       seven_day_utilization, seven_day_resets_at,
-       extra_usage_enabled, extra_usage_monthly_limit,
-       extra_usage_used_credits, extra_usage_utilization,
-       raw_json, error_message)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (timestamp, status, endpoint, response_status, raw_json, error_message)
+    VALUES (?, ?, ?, ?, ?, ?)
   `).run(
     data.timestamp,
     data.status,
     data.endpoint,
-    data.authMode,
     data.responseStatus,
-    data.fiveHourUtilization,
-    data.fiveHourResetsAt,
-    data.sevenDayUtilization,
-    data.sevenDayResetsAt,
-    data.extraUsageEnabled != null ? (data.extraUsageEnabled ? 1 : 0) : null,
-    data.extraUsageMonthlyLimit,
-    data.extraUsageUsedCredits,
-    data.extraUsageUtilization,
     data.rawJson,
     data.errorMessage
   );
