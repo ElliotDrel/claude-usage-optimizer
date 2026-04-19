@@ -31,16 +31,7 @@ function insert(
     timestamp: overrides.timestamp,
     status: "ok",
     endpoint: "test-endpoint",
-    authMode: "bearer",
     responseStatus: 200,
-    fiveHourUtilization: null,
-    fiveHourResetsAt: null,
-    sevenDayUtilization: null,
-    sevenDayResetsAt: null,
-    extraUsageEnabled: null,
-    extraUsageMonthlyLimit: null,
-    extraUsageUsedCredits: null,
-    extraUsageUtilization: null,
     rawJson: null,
     errorMessage: null,
     ...overrides,
@@ -72,10 +63,6 @@ describe("db helpers", () => {
   it("inserts and retrieves snapshots including null fields", () => {
     insert({
       timestamp: "2026-04-06T10:00:00Z",
-      fiveHourUtilization: null,
-      fiveHourResetsAt: null,
-      sevenDayUtilization: null,
-      sevenDayResetsAt: null,
       rawJson: null,
       errorMessage: null,
     });
@@ -84,10 +71,6 @@ describe("db helpers", () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].timestamp, "2026-04-06T10:00:00Z");
     assert.equal(rows[0].status, "ok");
-    assert.equal(rows[0].five_hour_utilization, null);
-    assert.equal(rows[0].five_hour_resets_at, null);
-    assert.equal(rows[0].seven_day_utilization, null);
-    assert.equal(rows[0].seven_day_resets_at, null);
     assert.equal(rows[0].raw_json, null);
     assert.equal(rows[0].error_message, null);
 
@@ -99,7 +82,6 @@ describe("db helpers", () => {
     insert({
       timestamp: "2026-04-06T12:00:00Z",
       status: "ok",
-      fiveHourUtilization: 20,
     });
     insert({
       timestamp: "2026-04-06T11:00:00Z",
@@ -110,7 +92,6 @@ describe("db helpers", () => {
     insert({
       timestamp: "2026-04-06T09:00:00Z",
       status: "ok",
-      fiveHourUtilization: 5,
     });
 
     const allRows = querySnapshots(config);
@@ -144,19 +125,21 @@ describe("db helpers", () => {
     );
   });
 
-  it("stores extra usage amounts in dollars", () => {
-    insert({
-      timestamp: "2026-04-06T13:00:00Z",
-      extraUsageEnabled: true,
-      extraUsageMonthlyLimit: 3,
-      extraUsageUsedCredits: 2.83,
-      extraUsageUtilization: 94.3,
-    });
+  it("schema has exactly 7 columns after getDb", () => {
+    const db = getDb(config);
+    const cols = db.prepare("PRAGMA table_info(usage_snapshots)").all() as { name: string }[];
+    assert.deepEqual(
+      cols.map((c) => c.name),
+      ["id", "timestamp", "status", "endpoint", "response_status", "raw_json", "error_message"]
+    );
+  });
 
-    const rows = querySnapshots(config, { since: "2026-04-06T13:00:00Z" });
+  it("migrator is idempotent — schema_version set to simplified-v1", () => {
+    const db = getDb(config);
+    const rows = db.prepare(
+      "SELECT value FROM app_meta WHERE key = 'schema_version'"
+    ).all() as { value: string }[];
     assert.equal(rows.length, 1);
-    assert.equal(rows[0].extra_usage_monthly_limit, 3);
-    assert.equal(rows[0].extra_usage_used_credits, 2.83);
-    assert.equal(rows[0].extra_usage_utilization, 94.3);
+    assert.equal(rows[0].value, "simplified-v1");
   });
 });
