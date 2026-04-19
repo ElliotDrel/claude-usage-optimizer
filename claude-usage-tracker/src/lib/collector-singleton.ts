@@ -67,14 +67,6 @@ function seedDemoData(config: import("./config").Config) {
   const total = Math.floor(SEVEN_DAYS / INTERVAL);
   seed = 42;
 
-  const insert = db.prepare(`
-    INSERT INTO usage_snapshots
-      (timestamp, status, endpoint, auth_mode, response_status,
-       five_hour_utilization, five_hour_resets_at,
-       seven_day_utilization, seven_day_resets_at,
-       raw_json, error_message)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
 
   // Pre-generate sessions for each of the 7 days
   const startTs = now - SEVEN_DAYS;
@@ -134,19 +126,23 @@ function seedDemoData(config: import("./config").Config) {
         ts.getTime() + 3 * 86400_000
       ).toISOString();
 
-      insert.run(
-        ts.toISOString(),
-        "ok",
-        "demo",
-        "demo",
-        200,
-        Math.round(fiveHourUtil * 10) / 10,
-        fiveHourResets,
-        Math.round(sevenDayUtil * 10) / 10,
-        sevenDayResets,
-        JSON.stringify({ demo: true }),
-        null
-      );
+      insertSnapshot(config, {
+        timestamp: ts.toISOString(),
+        status: "ok",
+        endpoint: "demo",
+        responseStatus: 200,
+        rawJson: JSON.stringify({
+          five_hour: {
+            utilization: Math.round(fiveHourUtil * 10) / 10,
+            resets_at: fiveHourResets,
+          },
+          seven_day: {
+            utilization: Math.round(sevenDayUtil * 10) / 10,
+            resets_at: sevenDayResets,
+          },
+        }),
+        errorMessage: null,
+      });
     }
   });
 
