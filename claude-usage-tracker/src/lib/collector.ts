@@ -2,6 +2,7 @@ import type { Config } from "./config";
 import { explainAuthFailure, getAuthPreflightError } from "./auth-diagnostics";
 import { insertSnapshot } from "./db";
 import { normalizeUsagePayload } from "./normalize";
+import { parseSnapshot } from "./queries";
 import { computeUsageDelta } from "./usage-window";
 
 // --- Tier types and constants ---
@@ -233,18 +234,9 @@ export class UsageCollector {
         timestamp: new Date().toISOString(),
         status: "error",
         endpoint: this.config.endpoint,
-        authMode: this.config.authMode,
         responseStatus: 0,
-        fiveHourUtilization: null,
-        fiveHourResetsAt: null,
-        sevenDayUtilization: null,
-        sevenDayResetsAt: null,
         rawJson: null,
         errorMessage: msg,
-        extraUsageEnabled: null,
-        extraUsageMonthlyLimit: null,
-        extraUsageUsedCredits: null,
-        extraUsageUtilization: null,
       });
       // No auth: schedule next in 10 minutes
       this.scheduleNext(10 * 60_000);
@@ -320,18 +312,9 @@ export class UsageCollector {
         timestamp: new Date().toISOString(),
         status: "ok",
         endpoint: this.config.endpoint,
-        authMode: this.config.authMode,
         responseStatus,
-        fiveHourUtilization: fiveHour?.utilization ?? null,
-        fiveHourResetsAt: fiveHour?.resetsAt ?? null,
-        sevenDayUtilization: sevenDay?.utilization ?? null,
-        sevenDayResetsAt: sevenDay?.resetsAt ?? null,
         rawJson,
         errorMessage: null,
-        extraUsageEnabled: normalized.extraUsage?.isEnabled ?? null,
-        extraUsageMonthlyLimit: centsToDollars(normalized.extraUsage?.monthlyLimit ?? null),
-        extraUsageUsedCredits: centsToDollars(normalized.extraUsage?.usedCredits ?? null),
-        extraUsageUtilization: normalized.extraUsage?.utilization ?? null,
       });
 
       // Compute delta using normalized hour-aligned reset boundaries.
@@ -377,18 +360,9 @@ export class UsageCollector {
         timestamp: new Date().toISOString(),
         status: "error",
         endpoint: this.config.endpoint,
-        authMode: this.config.authMode,
         responseStatus: 0,
-        fiveHourUtilization: null,
-        fiveHourResetsAt: null,
-        sevenDayUtilization: null,
-        sevenDayResetsAt: null,
         rawJson: null,
         errorMessage: msg,
-        extraUsageEnabled: null,
-        extraUsageMonthlyLimit: null,
-        extraUsageUsedCredits: null,
-        extraUsageUtilization: null,
       });
 
       // Update tier with failure
@@ -429,8 +403,9 @@ export class UsageCollector {
         const all = querySnapshots(this.config, { status: "ok" });
         if (all.length) {
           const last = all[all.length - 1];
-          this.demoFiveHour = last.five_hour_utilization ?? 0;
-          this.demoSevenDay = last.seven_day_utilization ?? 25;
+          const parsed = parseSnapshot(last);
+          this.demoFiveHour = parsed.five_hour_utilization ?? 0;
+          this.demoSevenDay = parsed.seven_day_utilization ?? 25;
         }
       } catch { /* fall through */ }
       this.demoFiveHour ??= 30;
@@ -475,18 +450,12 @@ export class UsageCollector {
       timestamp: now.toISOString(),
       status: "ok",
       endpoint: "demo",
-      authMode: "demo",
       responseStatus: 200,
-      fiveHourUtilization: fiveHourUtil,
-      fiveHourResetsAt: fiveHourResets,
-      sevenDayUtilization: sevenDayUtil,
-      sevenDayResetsAt: sevenDayResets,
-      rawJson: JSON.stringify({ demo: true }),
+      rawJson: JSON.stringify({
+        five_hour: { utilization: fiveHourUtil, resets_at: fiveHourResets },
+        seven_day: { utilization: sevenDayUtil, resets_at: sevenDayResets },
+      }),
       errorMessage: null,
-      extraUsageEnabled: null,
-      extraUsageMonthlyLimit: null,
-      extraUsageUsedCredits: null,
-      extraUsageUtilization: null,
     });
 
     this.state.lastAttemptAt = now.toISOString();
