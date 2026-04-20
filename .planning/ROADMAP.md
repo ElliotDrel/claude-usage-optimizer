@@ -85,7 +85,10 @@ Plans:
   4. Setting `app_meta.paused='true'` causes every subsequent tick to skip all fires until the flag is cleared; the global state survives restarts.
   5. All required `app_meta` keys from the spec (`schedule_fires`, `schedule_fires_done`, `schedule_generated_at`, `peak_block`, `schedule_override_start_time`, `peak_window_hours`, `anchor_offset_minutes`, `default_seed_time`, `user_timezone`, `schema_version`, `paused`) are read and written by the running system.
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — Create src/lib/scheduler.ts: initializeAppMeta, startScheduler, catch-up, tick loop, nightly recompute (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
+- [ ] 04-02-PLAN.md — Wire scheduler in instrumentation.ts + test/scheduler.test.ts with 8 fake-clock tests (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
 
 ### Phase 5: Dashboard Control Surface
 **Goal**: The dashboard becomes the operational control surface — a user can see the detected peak block, today's fire times with live countdown, tomorrow's preview, the last 20 sends, adjust overrides with immediate recompute, pause automatic sending, and trigger a manual send — without ever touching `journalctl`.
@@ -149,7 +152,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
 | 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
-| 4. Scheduler Wiring | 0/TBD | Not started | — |
+| 4. Scheduler Wiring | 0/2 | Not started | — |
 | 5. Dashboard Control Surface | 0/TBD | Not started | — |
 | 6. VM Deployment & Hardening | 0/TBD | Not started | — |
 | 7. Installer & Onboarding | 0/TBD | Not started | — |
@@ -159,3 +162,4 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 
 *Roadmap created: 2026-04-16*
 *Phase 3 planning: 2026-04-20*
+*Phase 4 planning: 2026-04-20*
