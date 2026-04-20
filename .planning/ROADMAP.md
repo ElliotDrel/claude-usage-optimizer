@@ -52,7 +52,10 @@ Plans:
   4. `schedule.ts` produces exactly 5 fire times spaced 5h apart (all wrapping past 24h), with the anchor set to midpoint + `:05` exactly and non-anchor fires jittered 0–5 minutes.
   5. When `schedule_override_start_time` is supplied, `schedule.ts` short-circuits peak detection and treats the override as the anchor.
 
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — peak-detector.ts + peak-detector.test.ts (SCHED-02, SCHED-03, SCHED-07, SCHED-08)
+- [ ] 02-02-PLAN.md — schedule.ts + schedule.test.ts (SCHED-04, SCHED-05, SCHED-06, SCHED-09)
 
 ### Phase 3: Sender Module
 **Goal**: A single `POST /api/send-now` call spawns `claude -p` under a 60s timeout, retries on failure within the current 5-hour window, and writes every attempt to `send_log` — exercisable from the dashboard's existing manual-send button or via curl.
@@ -140,7 +143,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
-| 2. Algorithm Core (Pure Modules) | 0/TBD | Not started | - |
+| 2. Algorithm Core (Pure Modules) | 0/2 | Not started | - |
 | 3. Sender Module | 0/TBD | Not started | - |
 | 4. Scheduler Wiring | 0/TBD | Not started | - |
 | 5. Dashboard Control Surface | 0/TBD | Not started | - |
