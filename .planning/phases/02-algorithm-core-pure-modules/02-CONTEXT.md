@@ -81,7 +81,7 @@ Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested TypeScript funct
 
 - User confirmed they don't need to weigh in on TypeScript type choices — implementation details are Claude's call.
 - Jitter verification approach: range assertions only. Keep tests simple.
-- `defaultSeedTime` format: `"HH:MM"` string matching the `app_meta` storage format (e.g. `"05:05"`).
+- `defaultSeedTime` default value: `"05:05"` — user confirmed they want the day to start at 5am. The `:05` is the built-in safety buffer (5 minutes past the hour). This is both the fallback anchor and the `app_meta.default_seed_time` default the scheduler will write on first run.
 
 </specifics>
 
