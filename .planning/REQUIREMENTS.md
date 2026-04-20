@@ -33,7 +33,8 @@
 
 - [ ] **DATA-01**: `usage_snapshots` persists the raw API payload verbatim in a `raw_json` column.
 - [ ] **DATA-02**: Simplified schema columns are exactly `(id, timestamp, status, endpoint, response_status, raw_json, error_message)` with indexes on `timestamp` and `status`.
-- [ ] **DATA-03**: `send_log` table persists send attempts separately from snapshots.
+- [x] **DATA-03
+**: `send_log` table persists send attempts separately from snapshots.
 - [ ] **DATA-04**: `app_meta` key-value store holds `schedule_fires`, `schedule_fires_done`, `schedule_generated_at`, `peak_block`, `schedule_override_start_time`, `peak_window_hours`, `anchor_offset_minutes`, `default_seed_time`, `user_timezone`, `schema_version`, `paused`.
 - [ ] **DATA-05**: A one-shot idempotent migrator runs at startup; it preserves existing `raw_json` (no re-fetch from claude.ai) and marks completion via `schema_version='simplified-v1'`.
 - [ ] **DATA-06**: Dashboard read queries derive fields from `raw_json` via `json_extract` or `JSON.parse` + `normalizeUsagePayload`.
