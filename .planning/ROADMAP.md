@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering. *(Completed 2026-04-19)*
 - [x] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring. *(Completed 2026-04-20)*
-- [ ] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, retries, `send_log` writes) plus `POST /api/send-now` for manual-fire testing.
+- [ ] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing.
 - [ ] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle.
 - [ ] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview.
 - [ ] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`.
@@ -58,17 +58,21 @@ Plans:
 - [x] 02-02-PLAN.md — schedule.ts + schedule.test.ts (SCHED-04, SCHED-05, SCHED-06, SCHED-09)
 
 ### Phase 3: Sender Module
-**Goal**: A single `POST /api/send-now` call spawns `claude -p` under a 60s timeout, retries on failure within the current 5-hour window, and writes every attempt to `send_log` — exercisable from the dashboard's existing manual-send button or via curl.
+**Goal**: A single `POST /api/send-now` call spawns `claude -p` under a 60s timeout, writes every attempt to `send_log`, and is manually invokable from the dashboard or via curl. **Note:** SEND-03 (retry logic) is superseded by design spec §10 and is out of scope; see CONTEXT.md D-01.
 **Depends on**: Phase 1
 **Requirements**: SEND-01, SEND-02, SEND-03, SEND-04, SEND-05, SEND-06, DATA-03
 **Success Criteria** (what must be TRUE):
   1. `POST /api/send-now` spawns `claude -p "<question>" --model haiku` via `child_process.spawn` using a question drawn from the ported `QUESTIONS` rotation constant.
   2. Every send attempt — success, error, or timeout — writes a row to the new `send_log` table capturing fired_at, scheduled_for, is_anchor, status, duration_ms, question, response_excerpt, and error_message.
-  3. A failed send is retried with exponential backoff, and retries are bounded so no retry fires into the next 5-hour window.
+  3. (SEND-03: No retries. Design spec §10 explicitly excludes retry logic; failed sends are logged with status='error' and the next scheduled slot is honored.)
   4. A send that exceeds 60s is killed and logged with `status='timeout'`.
   5. Manual-fire invocations write `send_log` rows with `scheduled_for=NULL` so they're distinguishable from scheduled fires.
 
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Add send_log table DDL, SendLogRow interface, insertSendLog() helper to db.ts; schema test to db.test.ts (DATA-03)
+- [ ] 03-02-PLAN.md — Create sender.ts with send() function and QUESTIONS constant; test send_log write logic in sender.test.ts (SEND-01, SEND-02, SEND-04, SEND-06, SEND-03)
+- [ ] 03-03-PLAN.md — Create POST /api/send-now route handler (SEND-05)
 
 ### Phase 4: Scheduler Wiring
 **Goal**: An in-process 60-second tick loop registered in `instrumentation.ts` fires the sender for matching scheduled slots, recomputes the schedule nightly at 03:00 UTC, catches up on recent missed fires after restart, and honors a global pause toggle.
@@ -143,14 +147,15 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
-| 2. Algorithm Core (Pure Modules) | 0/2 | Not started | - |
-| 3. Sender Module | 0/TBD | Not started | - |
-| 4. Scheduler Wiring | 0/TBD | Not started | - |
-| 5. Dashboard Control Surface | 0/TBD | Not started | - |
-| 6. VM Deployment & Hardening | 0/TBD | Not started | - |
-| 7. Installer & Onboarding | 0/TBD | Not started | - |
-| 8. Quality & Acceptance | 0/TBD | Not started | - |
+| 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
+| 3. Sender Module | 0/3 | Planning | — |
+| 4. Scheduler Wiring | 0/TBD | Not started | — |
+| 5. Dashboard Control Surface | 0/TBD | Not started | — |
+| 6. VM Deployment & Hardening | 0/TBD | Not started | — |
+| 7. Installer & Onboarding | 0/TBD | Not started | — |
+| 8. Quality & Acceptance | 0/TBD | Not started | — |
 
 ---
 
 *Roadmap created: 2026-04-16*
+*Phase 3 planning: 2026-04-20*
