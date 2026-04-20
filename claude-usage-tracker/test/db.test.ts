@@ -134,6 +134,40 @@ describe("db helpers", () => {
     );
   });
 
+  it("send_log table exists with correct columns and indexes", () => {
+    const db = getDb(config);
+
+    // Check table exists and has correct columns
+    const tableInfo = db.prepare(
+      "PRAGMA table_info(send_log)"
+    ).all() as { name: string }[];
+
+    assert.deepEqual(
+      tableInfo.map((c) => c.name),
+      [
+        "id",
+        "fired_at",
+        "scheduled_for",
+        "is_anchor",
+        "status",
+        "duration_ms",
+        "question",
+        "response_excerpt",
+        "error_message",
+      ]
+    );
+
+    // Check index exists
+    const indexes = db.prepare(
+      "PRAGMA index_list(send_log)"
+    ).all() as { name: string }[];
+
+    assert.ok(
+      indexes.some((idx) => idx.name === "idx_send_log_fired_at"),
+      "Index idx_send_log_fired_at should exist"
+    );
+  });
+
   it("migrator is idempotent — schema_version set to simplified-v1", () => {
     const db = getDb(config);
     const rows = db.prepare(
