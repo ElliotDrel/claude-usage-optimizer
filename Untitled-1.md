@@ -1,5 +1,0 @@
-c --resume be7818c4-c4df-4630-8878-c7880f4a86e7
-
-I need to go through all the data that we are collecting and revise the UI to first of all show it all. Second, I need to update the database to not store a broken-up version of the JSON and instead just parse the JSON for the data that we need to show in the UI.
-
-So what I want to make sure that we do is, when we're hosting this on this VM, it needs to push this to some sort of temporary or public free domain so that users can see their usage dashboard on the internet. They should also be able to edit the windows in which the message "something is going to happen" for the next few days in an easy and intuitive way. They should be able to send permanent settings or just temporary settings. For example, if a user is, there should be default settings like every single day by default it'll start the cycle at 5 a.m., and then some days it will start, and then I can say, like, "On Tuesdays I need to start at 8 a.m." or I need to say, "Just tomorrow, start at 8 a.m."
