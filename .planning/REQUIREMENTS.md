@@ -22,12 +22,17 @@
 
 ### Sending
 
-- [ ] **SEND-01**: Sends invoke `claude -p "<question>" --model haiku` via `child_process.spawn`.
-- [ ] **SEND-02**: Each send has a 60-second timeout; timeouts are logged as failures.
-- [ ] **SEND-03**: Failed sends are retried automatically with exponential backoff, bounded to the current 5-hour window so no retry fires into the next window.
-- [ ] **SEND-04**: Every send attempt writes a row to `send_log` with fired_at, scheduled_for, is_anchor, status, duration_ms, question, response_excerpt, error_message.
+- [x] **SEND-01
+**: Sends invoke `claude -p "<question>" --model haiku` via `child_process.spawn`.
+- [x] **SEND-02
+**: Each send has a 60-second timeout; timeouts are logged as failures.
+- [x] **SEND-03
+**: Failed sends are retried automatically with exponential backoff, bounded to the current 5-hour window so no retry fires into the next window.
+- [x] **SEND-04
+**: Every send attempt writes a row to `send_log` with fired_at, scheduled_for, is_anchor, status, duration_ms, question, response_excerpt, error_message.
 - [ ] **SEND-05**: User can trigger a manual send from the dashboard; manual sends write a `send_log` row with `scheduled_for=NULL`.
-- [ ] **SEND-06**: `QUESTIONS` rotation from the existing Python sender is ported verbatim into the Node sender.
+- [x] **SEND-06
+**: `QUESTIONS` rotation from the existing Python sender is ported verbatim into the Node sender.
 
 ### Data
 
