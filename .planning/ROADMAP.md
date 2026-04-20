@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering. *(Completed 2026-04-19)*
 - [x] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring. *(Completed 2026-04-20)*
-- [ ] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing.
+- [x] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing. *(Completed 2026-04-20)*
 - [ ] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle.
 - [ ] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview.
 - [ ] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`.
@@ -70,9 +70,9 @@ Plans:
 
 **Plans**: 3 plans
 Plans:
-- [ ] 03-01-PLAN.md — Add send_log table DDL, SendLogRow interface, insertSendLog() helper to db.ts; schema test to db.test.ts (DATA-03)
-- [ ] 03-02-PLAN.md — Create sender.ts with send() function and QUESTIONS constant; test send_log write logic in sender.test.ts (SEND-01, SEND-02, SEND-04, SEND-06, SEND-03)
-- [ ] 03-03-PLAN.md — Create POST /api/send-now route handler (SEND-05)
+- [x] 03-01-PLAN.md — Add send_log table DDL, SendLogRow interface, insertSendLog() helper to db.ts; schema test to db.test.ts (DATA-03)
+- [x] 03-02-PLAN.md — Create sender.ts with send() function and QUESTIONS constant; test send_log write logic in sender.test.ts (SEND-01, SEND-02, SEND-04, SEND-06, SEND-03)
+- [x] 03-03-PLAN.md — Create POST /api/send-now route handler (SEND-05)
 
 ### Phase 4: Scheduler Wiring
 **Goal**: An in-process 60-second tick loop registered in `instrumentation.ts` fires the sender for matching scheduled slots, recomputes the schedule nightly at 03:00 UTC, catches up on recent missed fires after restart, and honors a global pause toggle.
@@ -148,7 +148,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 |-------|----------------|--------|-----------|
 | 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
 | 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
-| 3. Sender Module | 0/3 | Planning | — |
+| 3. Sender Module | 3/3 | Complete | 2026-04-20 |
 | 4. Scheduler Wiring | 0/TBD | Not started | — |
 | 5. Dashboard Control Surface | 0/TBD | Not started | — |
 | 6. VM Deployment & Hardening | 0/TBD | Not started | — |
