@@ -320,15 +320,18 @@ async function runTick(
         overrideStartTime,
       });
 
-      // Convert FireTime[] to UTC ISO timestamps for today
-      const scheduledFires: ScheduledFire[] = fires.map((ft) => ({
-        timestamp: fireTimeToUtcIso(
-          { hour: ft.hour + Math.floor((ft.minute + ft.jitterMinutes) / 60 === 0 ? 0 : 0), minute: ft.minute + ft.jitterMinutes },
-          timezone,
-          nowFn
-        ),
-        isAnchor: ft.isAnchor,
-      }));
+      // Convert FireTime[] to UTC ISO timestamps for today.
+      // Apply jitter: jitterMinutes (0-5) is added to the slot minute and may
+      // carry over into the hour (e.g. 59min + 3jitter = hour+1, 2min).
+      const scheduledFires: ScheduledFire[] = fires.map((ft) => {
+        const totalMinutes = ft.hour * 60 + ft.minute + ft.jitterMinutes;
+        const jitteredHour = Math.floor(totalMinutes / 60) % 24;
+        const jitteredMinute = totalMinutes % 60;
+        return {
+          timestamp: fireTimeToUtcIso({ hour: jitteredHour, minute: jitteredMinute }, timezone, nowFn),
+          isAnchor: ft.isAnchor,
+        };
+      });
 
       // Write all 4 app_meta keys atomically (individual prepared statements)
       writeMeta(db, "schedule_fires", JSON.stringify(scheduledFires));
