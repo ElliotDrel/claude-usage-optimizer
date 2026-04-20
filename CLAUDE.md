@@ -43,6 +43,6 @@ These are high-frequency lookups that save a file read:
 - **Tests**: `npm test` (runs `tsx --test test/*.test.ts`)
 - **Lint**: `npm run lint`
 - **Build**: `npm run build`
-- **Tracker source**: `Claude Usage Tracker/claude-usage-tracker/src/`
-- **Sender source**: `Claude Message Sender/`
+- **Source**: `src/` (root)
+- **Tests**: `test/` (root)
 - **Path alias**: `@/*` maps to `./src/*`
