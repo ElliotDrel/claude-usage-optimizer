@@ -25,6 +25,21 @@ CREATE TABLE IF NOT EXISTS app_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS send_log (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  fired_at        TEXT    NOT NULL,
+  scheduled_for   TEXT,
+  is_anchor       INTEGER NOT NULL,
+  status          TEXT    NOT NULL,
+  duration_ms     INTEGER,
+  question        TEXT,
+  response_excerpt TEXT,
+  error_message   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_send_log_fired_at
+  ON send_log(fired_at);
 `;
 
 function migrateToSimplifiedSchema(db: Database.Database): void {
@@ -110,6 +125,18 @@ export interface SnapshotRow {
   error_message: string | null;
 }
 
+export interface SendLogRow {
+  id: number;
+  fired_at: string;
+  scheduled_for: string | null;
+  is_anchor: number;
+  status: string;
+  duration_ms: number | null;
+  question: string | null;
+  response_excerpt: string | null;
+  error_message: string | null;
+}
+
 export function insertSnapshot(
   config: Config,
   data: {
@@ -134,6 +161,34 @@ export function insertSnapshot(
     data.rawJson,
     data.errorMessage
   );
+}
+
+export function insertSendLog(
+  config: Config,
+  data: Omit<SendLogRow, "id">
+): SendLogRow {
+  const db = getDb(config);
+  const stmt = db.prepare(`
+    INSERT INTO send_log
+      (fired_at, scheduled_for, is_anchor, status, duration_ms, question, response_excerpt, error_message)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const result = stmt.run(
+    data.fired_at,
+    data.scheduled_for,
+    data.is_anchor,
+    data.status,
+    data.duration_ms,
+    data.question,
+    data.response_excerpt,
+    data.error_message
+  );
+
+  return {
+    id: result.lastInsertRowid as number,
+    ...data,
+  };
 }
 
 export function querySnapshots(
