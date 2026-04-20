@@ -13,7 +13,7 @@ Rebuild the two-subproject (Python sender + Next.js tracker) system into a singl
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering. *(Completed 2026-04-19)*
-- [ ] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring.
+- [x] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring. *(Completed 2026-04-20)*
 - [ ] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, retries, `send_log` writes) plus `POST /api/send-now` for manual-fire testing.
 - [ ] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle.
 - [ ] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview.
@@ -54,8 +54,8 @@ Plans:
 
 **Plans**: 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — peak-detector.ts + peak-detector.test.ts (SCHED-02, SCHED-03, SCHED-07, SCHED-08)
-- [ ] 02-02-PLAN.md — schedule.ts + schedule.test.ts (SCHED-04, SCHED-05, SCHED-06, SCHED-09)
+- [x] 02-01-PLAN.md — peak-detector.ts + peak-detector.test.ts (SCHED-02, SCHED-03, SCHED-07, SCHED-08)
+- [x] 02-02-PLAN.md — schedule.ts + schedule.test.ts (SCHED-04, SCHED-05, SCHED-06, SCHED-09)
 
 ### Phase 3: Sender Module
 **Goal**: A single `POST /api/send-now` call spawns `claude -p` under a 60s timeout, retries on failure within the current 5-hour window, and writes every attempt to `send_log` — exercisable from the dashboard's existing manual-send button or via curl.
