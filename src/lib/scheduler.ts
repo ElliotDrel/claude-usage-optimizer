@@ -385,6 +385,24 @@ async function runTick(
 // ---------------------------------------------------------------------------
 
 /**
+ * tickOnce — run a single tick immediately with the given clock.
+ *
+ * Exported for testing: allows tests to drive one tick synchronously
+ * without waiting for the 60-second interval. Calls runTick internally.
+ *
+ * @param db — open better-sqlite3 database handle
+ * @param nowFn — optional clock injection; defaults to () => new Date()
+ */
+export async function tickOnce(
+  db: Database.Database,
+  nowFn?: () => Date
+): Promise<void> {
+  const config = getConfig();
+  const clockFn = nowFn ?? (() => new Date());
+  await runTick(db, config, clockFn);
+}
+
+/**
  * startScheduler — start the in-process 60-second tick loop.
  *
  * 1. Calls initializeAppMeta(db) — writes all 10 app_meta defaults (D-04)

@@ -17,7 +17,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import Database from "better-sqlite3";
-import { startScheduler } from "../src/lib/scheduler";
+import { startScheduler, tickOnce } from "../src/lib/scheduler";
 
 // Inline minimal schema — mirrors SCHEMA constant from src/lib/db.ts
 const SCHEMA = `
@@ -257,6 +257,128 @@ describe("scheduler: stop() clears the interval", () => {
     const scheduler = startScheduler(db);
     assert.ok(typeof scheduler.stop === "function", "startScheduler must return { stop: () => void }");
     scheduler.stop();
+
+    closeDb(db);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SCHED-11: tick fires due slot / skips already-done slot
+// ---------------------------------------------------------------------------
+
+
+describe("scheduler: tick fires due slot (SCHED-11)", () => {
+  it("fires a due slot not in the done list", async () => {
+    const db = makeDb("tick-fire");
+
+    const frozenNow = new Date("2026-04-20T14:10:00Z");
+    const fireTs = "2026-04-20T14:05:00Z";
+
+    // Initialize defaults first
+    const s0 = startScheduler(db, { nowFn: () => frozenNow });
+    s0.stop();
+
+    setMeta(db, "schedule_fires", JSON.stringify([{ timestamp: fireTs, isAnchor: false }]));
+    setMeta(db, "schedule_fires_done", "[]");
+    setMeta(db, "paused", "false");
+    // Prevent recompute: mark schedule already generated today so tick skips recompute
+    setMeta(db, "schedule_generated_at", "2026-04-20T03:00:00Z");
+
+    // Run one tick with a short send timeout
+    await tickOnce(db, () => frozenNow);
+
+    const done = JSON.parse(getMeta(db, "schedule_fires_done") ?? "[]") as string[];
+    assert.ok(
+      done.includes(fireTs),
+      `Due fire must appear in schedule_fires_done; got: ${JSON.stringify(done)}`
+    );
+
+    closeDb(db);
+  });
+
+  it("skips a slot already in the done list", async () => {
+    const db = makeDb("tick-skip");
+
+    const frozenNow = new Date("2026-04-20T14:10:00Z");
+    const fireTs = "2026-04-20T14:05:00Z";
+
+    // Initialize defaults first
+    const s0 = startScheduler(db, { nowFn: () => frozenNow });
+    s0.stop();
+
+    setMeta(db, "schedule_fires", JSON.stringify([{ timestamp: fireTs, isAnchor: false }]));
+    setMeta(db, "schedule_fires_done", JSON.stringify([fireTs])); // already done
+    setMeta(db, "paused", "false");
+
+    await tickOnce(db, () => frozenNow);
+
+    const count = (
+      db.prepare("SELECT COUNT(*) as cnt FROM send_log").get() as { cnt: number }
+    ).cnt;
+    assert.strictEqual(count, 0, "Already-done slot must not fire again");
+
+    closeDb(db);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SCHED-01: nightly recompute at 03:00 UTC
+// ---------------------------------------------------------------------------
+
+describe("scheduler: nightly recompute (SCHED-01)", () => {
+  it("triggers recompute when schedule_generated_at is from a previous day", async () => {
+    const db = makeDb("recompute-trigger");
+
+    const frozenNow = new Date("2026-04-20T03:05:00Z");
+
+    // Initialize defaults first
+    const s0 = startScheduler(db, { nowFn: () => frozenNow });
+    s0.stop();
+
+    // Set generated_at to yesterday
+    setMeta(db, "schedule_generated_at", "2026-04-19T03:00:00Z");
+    setMeta(db, "paused", "false");
+
+    // Run one tick — should detect stale schedule and recompute
+    await tickOnce(db, () => frozenNow);
+
+    const generatedAt = getMeta(db, "schedule_generated_at") ?? "";
+    assert.notStrictEqual(
+      generatedAt,
+      "2026-04-19T03:00:00Z",
+      "schedule_generated_at must be updated after recompute"
+    );
+    assert.ok(
+      generatedAt.startsWith("2026-04-20"),
+      `schedule_generated_at must start with today's UTC date; got: ${generatedAt}`
+    );
+
+    closeDb(db);
+  });
+
+  it("does not trigger recompute when schedule_generated_at is already today", async () => {
+    const db = makeDb("recompute-skip");
+
+    const frozenNow = new Date("2026-04-20T03:05:00Z");
+    const todayGenerated = "2026-04-20T03:00:00Z";
+
+    // Initialize defaults first
+    const s0 = startScheduler(db, { nowFn: () => frozenNow });
+    s0.stop();
+
+    // Set generated_at to today already
+    setMeta(db, "schedule_generated_at", todayGenerated);
+    setMeta(db, "paused", "false");
+
+    // Run one tick — should NOT recompute since already done today
+    await tickOnce(db, () => frozenNow);
+
+    const generatedAt = getMeta(db, "schedule_generated_at");
+    assert.strictEqual(
+      generatedAt,
+      todayGenerated,
+      "schedule_generated_at must be unchanged when schedule already generated today"
+    );
 
     closeDb(db);
   });
