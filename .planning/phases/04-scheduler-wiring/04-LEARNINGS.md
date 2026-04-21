@@ -3,13 +3,13 @@ phase: 4
 phase_name: "Scheduler Wiring"
 project: "Claude Usage Optimizer"
 generated: "2026-04-21"
+extracted: "2026-04-21T17:45:00Z"
 counts:
   decisions: 5
-  lessons: 5
+  lessons: 6
   patterns: 4
-  surprises: 3
+  surprises: 4
 missing_artifacts:
-  - "04-VERIFICATION.md"
   - "04-HUMAN-UAT.md"
 ---
 
@@ -156,3 +156,21 @@ When `initializeAppMeta` is called (by `startScheduler` or `tickOnce` internally
 
 **Impact:** SCHED-11 "fires due slot" test silently produced wrong results — the expected fire timestamp was replaced by freshly generated schedule timestamps. The failure message showed unexpected timestamps rather than a missing function, making the root cause non-obvious.
 **Source:** 04-02-SUMMARY.md, this session (SCHED-11 debugging)
+
+---
+
+### Worktree isolation exposes uncommitted-changes gaps in Wave execution handoffs
+When a Wave 1 executor makes changes to the working tree but does not commit them before returning, those changes are invisible to a Wave 2 executor running in a fresh worktree created from the committed HEAD. `git status` on main shows the changes, but `git worktree add` bases new worktrees on the remote-tracking branch or explicit base commit, not the working-tree state.
+
+**Impact:** Wave 1 agent added `tickOnce` export to `scheduler.ts` without committing it. Wave 2 agent's worktree had `scheduler.ts` without `tickOnce`, causing 4 test failures ("tickOnce is not a function"). Required a second manual commit cycle to fix.
+**Source:** 04-02-SUMMARY.md, this session (Wave 1→2 handoff debugging)
+
+---
+
+## Additional Surprises
+
+### All-passing verification is rare but achievable with small, well-scoped phases
+The Phase 4 verification passed 5/5 observable truths with zero gaps. This is unusual — typical phases discover 1–3 gaps requiring closure. The small scope (2 plans, 128 tests, tight integration with Phase 2+3) and clear requirement mapping (5 requirements, 11 test cases covering them all) made end-to-end correctness achievable without iteration.
+
+**Impact:** Demonstrates that disciplined planning + strict test-requirement traceability + small-batch execution = zero-gap handoff to Phase 5. No gap-closure cycle needed; ready to proceed immediately.
+**Source:** 04-VERIFICATION.md (status: passed), this session (phase-complete commit)
