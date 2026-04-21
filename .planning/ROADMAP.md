@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & DB Refactor** - Delete legacy trees, land simplified schema + one-shot migrator, move normalization to the read path so existing dashboard panels keep rendering. *(Completed 2026-04-19)*
 - [x] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring. *(Completed 2026-04-20)*
 - [x] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing. *(Completed 2026-04-20)*
-- [ ] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle.
+- [x] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle. *(Completed 2026-04-21)*
 - [ ] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview.
 - [ ] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`.
 - [ ] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes.
@@ -87,8 +87,8 @@ Plans:
 
 **Plans**: 2 plans
 Plans:
-- [ ] 04-01-PLAN.md — Create src/lib/scheduler.ts: initializeAppMeta, startScheduler, catch-up, tick loop, nightly recompute (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
-- [ ] 04-02-PLAN.md — Wire scheduler in instrumentation.ts + test/scheduler.test.ts with 8 fake-clock tests (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
+- [x] 04-01-PLAN.md — Create src/lib/scheduler.ts: initializeAppMeta, startScheduler, catch-up, tick loop, nightly recompute (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
+- [x] 04-02-PLAN.md — Wire scheduler in instrumentation.ts + test/scheduler.test.ts with 8 fake-clock tests (SCHED-01, SCHED-10, SCHED-11, SCHED-12, DATA-04)
 
 ### Phase 5: Dashboard Control Surface
 **Goal**: The dashboard becomes the operational control surface — a user can see the detected peak block, today's fire times with live countdown, tomorrow's preview, the last 20 sends, adjust overrides with immediate recompute, pause automatic sending, and trigger a manual send — without ever touching `journalctl`.
@@ -152,7 +152,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 1. Foundation & DB Refactor | 5/5 | Complete | 2026-04-19 |
 | 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
-| 4. Scheduler Wiring | 0/2 | Not started | — |
+| 4. Scheduler Wiring | 2/2 | Complete | 2026-04-21 |
 | 5. Dashboard Control Surface | 0/TBD | Not started | — |
 | 6. VM Deployment & Hardening | 0/TBD | Not started | — |
 | 7. Installer & Onboarding | 0/TBD | Not started | — |
@@ -163,3 +163,4 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 *Roadmap created: 2026-04-16*
 *Phase 3 planning: 2026-04-20*
 *Phase 4 planning: 2026-04-20*
+*Phase 4 complete: 2026-04-21*
