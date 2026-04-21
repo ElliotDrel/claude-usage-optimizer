@@ -10,7 +10,7 @@
 
 import type Database from "better-sqlite3";
 import { getConfig } from "./config";
-import { querySnapshots } from "./db";
+import { querySnapshots, getDb } from "./db";
 import { send } from "./sender";
 import { peakDetector } from "./peak-detector";
 import { generateSchedule } from "./schedule";
@@ -444,4 +444,75 @@ export function startScheduler(
   return {
     stop: () => clearInterval(interval),
   };
+}
+
+/**
+ * recomputeSchedule — force recomputation of the schedule based on current
+ * app_meta settings and available snapshots.
+ *
+ * Called by the PATCH /api/app-meta endpoint after overrides are written
+ * to immediately return the new schedule_fires to the client.
+ *
+ * @param config — configuration object
+ * @param nowFn — optional clock injection for testing
+ */
+export function recomputeSchedule(
+  config: ReturnType<typeof getConfig>,
+  nowFn?: () => Date
+): void {
+  const db = getDb(config);
+  const clockFn = nowFn ?? (() => new Date());
+  const now = clockFn();
+
+  try {
+    // Read timezone and schedule options from app_meta
+    const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
+    const anchorOffsetMinutes = parseInt(
+      readMeta(db, "anchor_offset_minutes", "5"),
+      10
+    );
+    const defaultSeedTime = readMeta(db, "default_seed_time", "05:05");
+    const overrideStartTime = readMeta(db, "schedule_override_start_time", "") || null;
+
+    // Read all ok snapshots and parse
+    const rows = querySnapshots(config, { status: "ok" });
+    const parsed = parseSnapshots(rows);
+
+    // Detect peak
+    const peakResult = peakDetector(parsed, timezone);
+    const peakBlock = peakResult?.peakBlock ?? null;
+
+    // Generate schedule
+    const fires = generateSchedule(peakBlock, {
+      anchorOffsetMinutes,
+      defaultSeedTime,
+      overrideStartTime,
+    });
+
+    // Convert FireTime[] to UTC ISO timestamps for today.
+    const scheduledFires: ScheduledFire[] = fires.map((ft) => {
+      const totalMinutes = ft.hour * 60 + ft.minute + ft.jitterMinutes;
+      const jitteredHour = Math.floor(totalMinutes / 60) % 24;
+      const jitteredMinute = totalMinutes % 60;
+      return {
+        timestamp: fireTimeToUtcIso({ hour: jitteredHour, minute: jitteredMinute }, timezone, clockFn),
+        isAnchor: ft.isAnchor,
+      };
+    });
+
+    // Write all 4 app_meta keys atomically (individual prepared statements)
+    writeMeta(db, "schedule_fires", JSON.stringify(scheduledFires));
+    writeMeta(db, "peak_block", peakBlock ? JSON.stringify(peakBlock) : "");
+    writeMeta(db, "schedule_generated_at", now.toISOString());
+    writeMeta(db, "schedule_fires_done", "[]"); // Reset done list for new day
+
+    console.log(
+      `[scheduler] schedule recomputed: ${scheduledFires.length} fires, ` +
+      `peak block: ${peakBlock ? `${peakBlock.startHour}–${peakBlock.endHour}` : "none (seed fallback)"}`
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[scheduler] schedule recompute failed: ${msg}`);
+    throw err; // Propagate to caller
+  }
 }
