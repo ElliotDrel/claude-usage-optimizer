@@ -101,7 +101,11 @@ Plans:
   4. A "Send now" button triggers a manual send and the resulting `send_log` row shows up in the history panel.
   5. A Pause toggle flips `app_meta.paused` and the scheduler visibly stops firing sends until the toggle is flipped back.
   6. A Tomorrow's Schedule preview shows the 5 predicted fire times for the next day alongside today's.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 05-01-PLAN.md — Extend GET /api/dashboard with scheduleData + sendHistory, create PATCH /api/app-meta endpoint with recompute (UI-01, UI-02, UI-03)
+- [ ] 05-02-PLAN.md — Build OptimalScheduleCard with Today/Tomorrow tabs, live countdown, peak block display (UI-01, UI-07)
+- [ ] 05-03-PLAN.md — Build ScheduleOverridesPanel, SendHistoryPanel, SendNowButton, PauseToggle, TimezoneWarningBanner (UI-02, UI-04, UI-05, UI-06)
 **UI hint**: yes
 
 ### Phase 6: VM Deployment & Hardening
@@ -153,7 +157,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
 | 4. Scheduler Wiring | 2/2 | Complete | 2026-04-21 |
-| 5. Dashboard Control Surface | 0/TBD | Not started | — |
+| 5. Dashboard Control Surface | 0/3 | Planned | — |
 | 6. VM Deployment & Hardening | 0/TBD | Not started | — |
 | 7. Installer & Onboarding | 0/TBD | Not started | — |
 | 8. Quality & Acceptance | 0/TBD | Not started | — |
@@ -164,3 +168,4 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 *Phase 3 planning: 2026-04-20*
 *Phase 4 planning: 2026-04-20*
 *Phase 4 complete: 2026-04-21*
+*Phase 5 planning: 2026-04-21*
