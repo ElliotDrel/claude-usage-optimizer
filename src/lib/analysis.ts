@@ -1,6 +1,10 @@
 import type { CollectorState } from "./collector";
 import { computeUsageDelta } from "./usage-window";
 import { type ParsedSnapshot } from "./queries";
+import type { FireTime } from "./schedule";
+import type { SendLogRow } from "./db";
+import { getAppMeta, querySendLog } from "./db";
+import { getConfig } from "./config";
 
 export interface HourlyBar {
   hour: number;
@@ -50,6 +54,29 @@ export interface ExtraUsageInsights {
   largestSpend: ExtraUsageEvent | null;
 }
 
+export interface ScheduleData {
+  peakBlock: {
+    startHour: number;
+    endHour: number;
+    midpoint: number;
+    sumDelta: number;
+  } | null;
+  scheduleFires: FireTime[];
+  tomorrowFires: FireTime[];
+  scheduleGeneratedAt: string | null;
+  isPaused: boolean;
+}
+
+export interface SendLogEntry {
+  id: number;
+  firedAt: string;
+  scheduledFor: string | null;
+  status: "ok" | "error" | "timeout";
+  durationMs: number | null;
+  question: string | null;
+  responseExcerpt: string | null;
+}
+
 export interface DashboardData {
   generatedAt: string;
   health: {
@@ -84,6 +111,8 @@ export interface DashboardData {
   extraUsageInsights: ExtraUsageInsights;
   runtime: CollectorState;
   storage: { path: string; sizeBytes: number; totalSnapshots: number };
+  scheduleData: ScheduleData;
+  sendHistory: SendLogEntry[];
 }
 
 function round2(n: number): number {
@@ -232,6 +261,13 @@ function buildUsageInsights(snapshots: ParsedSnapshot[]) {
   };
 }
 
+function shiftFireTimesTomorrow(today: FireTime[]): FireTime[] {
+  return today.map((ft) => ({
+    ...ft,
+    hour: (ft.hour + 24) % 24,
+  }));
+}
+
 function buildExtraUsageInsights(snapshots: ParsedSnapshot[]): ExtraUsageInsights {
   const okSnapshots = snapshots.filter((s) => s.status === "ok");
   const lastSuccess = okSnapshots.at(-1) ?? null;
@@ -355,6 +391,59 @@ export function buildDashboardData(
     };
   });
 
+  // Build schedule data from app_meta
+  const config = getConfig();
+  const meta = getAppMeta(config);
+  const peakBlockJson = meta.get("peak_block");
+  const peakBlock = peakBlockJson
+    ? (() => {
+        try {
+          return JSON.parse(peakBlockJson) as {
+            startHour: number;
+            endHour: number;
+            midpoint: number;
+            sumDelta: number;
+          } | null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  const scheduleFires = (() => {
+    const scheduleFiresJson = meta.get("schedule_fires");
+    if (!scheduleFiresJson) return [];
+    try {
+      return JSON.parse(scheduleFiresJson) as FireTime[];
+    } catch {
+      return [];
+    }
+  })();
+
+  const tomorrowFires = shiftFireTimesTomorrow(scheduleFires);
+
+  const scheduleGeneratedAt = meta.get("schedule_generated_at") || null;
+  const isPaused = meta.get("paused") === "true";
+
+  // Build send history from send_log
+  const sendLogRows = querySendLog(config, { limit: 20, orderDesc: true });
+  const sendHistory = sendLogRows
+    .reverse() // reverse to get oldest first for frontend
+    .map(
+      (row): SendLogEntry => ({
+        id: row.id,
+        firedAt: row.fired_at,
+        scheduledFor: row.scheduled_for,
+        status: (row.status === "ok" ? "ok" : row.status === "error" ? "error" : "timeout") as
+          | "ok"
+          | "error"
+          | "timeout",
+        durationMs: row.duration_ms,
+        question: row.question,
+        responseExcerpt: row.response_excerpt,
+      })
+    );
+
   return {
     generatedAt: new Date().toISOString(),
     health: {
@@ -372,5 +461,13 @@ export function buildDashboardData(
     extraUsageInsights: buildExtraUsageInsights(snapshots),
     runtime,
     storage: storageMeta,
+    scheduleData: {
+      peakBlock,
+      scheduleFires,
+      tomorrowFires,
+      scheduleGeneratedAt,
+      isPaused,
+    },
+    sendHistory,
   };
 }

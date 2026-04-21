@@ -232,3 +232,33 @@ export function getDbMeta(config: Config) {
     totalSnapshots: count,
   };
 }
+
+export function getAppMeta(config: Config): Map<string, string> {
+  const db = getDb(config);
+  const rows = db.prepare("SELECT key, value FROM app_meta").all() as Array<{
+    key: string;
+    value: string;
+  }>;
+  return new Map(rows.map((r) => [r.key, r.value]));
+}
+
+export function setAppMeta(config: Config, key: string, value: string): void {
+  const db = getDb(config);
+  db.prepare(`
+    INSERT INTO app_meta (key, value)
+    VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run(key, value);
+}
+
+export function querySendLog(
+  config: Config,
+  opts?: { limit?: number; orderDesc?: boolean }
+): SendLogRow[] {
+  const db = getDb(config);
+  const limit = opts?.limit ?? 100;
+  const orderClause = opts?.orderDesc ? "DESC" : "ASC";
+  return db
+    .prepare(`SELECT * FROM send_log ORDER BY fired_at ${orderClause} LIMIT ?`)
+    .all(limit) as SendLogRow[];
+}
