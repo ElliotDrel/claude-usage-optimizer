@@ -193,6 +193,15 @@ function fireTimeToUtcIso(
   const localMonth = localDateParts.find((p) => p.type === "month")?.value ?? "";
   const localDay = localDateParts.find((p) => p.type === "day")?.value ?? "";
 
+  // WR-04: Explicit guard — if any part is missing, the resulting ISO string
+  // would be malformed (e.g. "--T12:00:00Z"). Throw so the caller can log and
+  // fall back gracefully rather than silently writing a corrupt timestamp.
+  if (!localYear || !localMonth || !localDay) {
+    throw new Error(
+      `[scheduler] fireTimeToUtcIso: formatToParts returned incomplete date parts for timezone '${safeTimezone}'`
+    );
+  }
+
   // Construct a "local" ISO string and then find the UTC equivalent by
   // probing: create a Date from the string as if it were UTC, check what
   // Intl reports for local hour/minute at that UTC moment, and adjust.
