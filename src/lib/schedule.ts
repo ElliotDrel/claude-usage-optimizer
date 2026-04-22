@@ -50,7 +50,8 @@ export function generateSchedule(
     const slotHour = Math.floor(totalMinutes / 60) % 24;
     const slotMinute = totalMinutes % 60;
     const isAnchor = n === 0;
-    const jitterMinutes = isAnchor ? 0 : Math.floor(Math.random() * 6); // 0–5 inclusive
+    // 0–5 inclusive: Math.random() in [0,1) * 6 = [0,6), floor = [0,5]
+    const jitterMinutes = isAnchor ? 0 : Math.floor(Math.random() * 6);
 
     fires.push({ hour: slotHour, minute: slotMinute, isAnchor, jitterMinutes });
   }
