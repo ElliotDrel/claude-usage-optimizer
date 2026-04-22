@@ -21,6 +21,17 @@ Everything else is scaffolding. If this one thing works, the product is valuable
 - ✓ Hourly bars + 7×24 heatmap computation from snapshot deltas — existing
 - ✓ `claude -p "<question>"` subprocess send via the Claude Code CLI — existing (Python)
 - ✓ Next.js dashboard rendering (React 19 + Tailwind v4) — existing
+- ✓ Simplified `usage_snapshots` schema + one-shot idempotent migrator — Phase 1
+- ✓ Read-side `queries.ts` with `json_extract` / `JSON.parse` — Phase 1
+- ✓ 4-hour sliding window peak detection with midnight wrap + deterministic tiebreak — Phase 2
+- ✓ 5-fire daily chain with midpoint anchor, jitter, and `schedule_override_start_time` short-circuit — Phase 2
+- ✓ `send_log` table + `sender.ts` spawning `claude -p` with 60s timeout — Phase 3
+- ✓ In-process 60s `setInterval` scheduler with catch-up, nightly recompute, pause toggle — Phase 4
+- ✓ Optimal Schedule card: peak block, 5 fire times, live countdown, Tomorrow tab — Phase 5
+- ✓ Schedule Overrides panel: 5 `app_meta` fields, save-on-blur, immediate recompute — Phase 5
+- ✓ Send History panel: last 20 `send_log` rows with status badges — Phase 5
+- ✓ Send Now button: manual fire with dashboard refresh — Phase 5
+- ✓ Pause toggle with confirmation dialog — Phase 5
 
 ### Active
 
@@ -158,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after initialization*
+*Last updated: 2026-04-22 after Phase 5*

@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Algorithm Core (Pure Modules)** - Ship `peak-detector.ts` and `schedule.ts` as pure, fully-tested functions with no runtime wiring. *(Completed 2026-04-20)*
 - [x] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing. *(Completed 2026-04-20)*
 - [x] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle. *(Completed 2026-04-21)*
-- [x] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview. *(Completed 2026-04-22)*
+- [x] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview. *(Completed 2026-04-22)* ✓
 - [ ] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`.
 - [ ] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes.
 - [ ] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture.
@@ -103,9 +103,9 @@ Plans:
   6. A Tomorrow's Schedule preview shows the 5 predicted fire times for the next day alongside today's.
 **Plans**: 3 plans
 Plans:
-- [ ] 05-01-PLAN.md — Extend GET /api/dashboard with scheduleData + sendHistory, create PATCH /api/app-meta endpoint with recompute (UI-01, UI-02, UI-03)
-- [ ] 05-02-PLAN.md — Build OptimalScheduleCard with Today/Tomorrow tabs, live countdown, peak block display (UI-01, UI-07)
-- [ ] 05-03-PLAN.md — Build ScheduleOverridesPanel, SendHistoryPanel, SendNowButton, PauseToggle, TimezoneWarningBanner (UI-02, UI-04, UI-05, UI-06)
+- [x] 05-01-PLAN.md — Extend GET /api/dashboard with scheduleData + sendHistory, create PATCH /api/app-meta endpoint with recompute (UI-01, UI-02, UI-03)
+- [x] 05-02-PLAN.md — Build OptimalScheduleCard with Today/Tomorrow tabs, live countdown, peak block display (UI-01, UI-07)
+- [x] 05-03-PLAN.md — Build ScheduleOverridesPanel, SendHistoryPanel, SendNowButton, PauseToggle, TimezoneWarningBanner (UI-02, UI-04, UI-05, UI-06)
 **UI hint**: yes
 
 ### Phase 6: VM Deployment & Hardening
@@ -157,7 +157,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 2. Algorithm Core (Pure Modules) | 2/2 | Complete | 2026-04-20 |
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
 | 4. Scheduler Wiring | 2/2 | Complete | 2026-04-21 |
-| 5. Dashboard Control Surface | 0/3 | Planned | — |
+| 5. Dashboard Control Surface | 3/3 | Complete | 2026-04-22 |
 | 6. VM Deployment & Hardening | 0/TBD | Not started | — |
 | 7. Installer & Onboarding | 0/TBD | Not started | — |
 | 8. Quality & Acceptance | 0/TBD | Not started | — |
@@ -169,3 +169,4 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 *Phase 4 planning: 2026-04-20*
 *Phase 4 complete: 2026-04-21*
 *Phase 5 planning: 2026-04-21*
+*Phase 5 complete: 2026-04-22*
