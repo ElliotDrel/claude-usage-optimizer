@@ -46,6 +46,9 @@ function initializeAppMeta(db: Database.Database): void {
     default_seed_time: "05:05",
     user_timezone: "America/Los_Angeles",
     paused: "false",
+    // CR-03: lock flag reset to "false" on every startup so a previous crash
+    // cannot permanently brick scheduling (see recomputeSchedule below).
+    schedule_recomputing: "false",
   };
 
   for (const [key, value] of Object.entries(defaults)) {
@@ -53,6 +56,14 @@ function initializeAppMeta(db: Database.Database): void {
       "INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING"
     ).run(key, value);
   }
+
+  // CR-03: Always reset the recompute lock on startup — the DO NOTHING above
+  // would leave a crash-stuck "true" value in place, permanently blocking
+  // future recomputes. Use an explicit UPSERT to force it back to "false".
+  db.prepare(
+    "INSERT INTO app_meta (key, value) VALUES ('schedule_recomputing', 'false')" +
+    " ON CONFLICT(key) DO UPDATE SET value = 'false'"
+  ).run();
 }
 
 /**
@@ -464,6 +475,17 @@ export function recomputeSchedule(
   const clockFn = nowFn ?? (() => new Date());
   const now = clockFn();
 
+  // CR-03: Guard against overlapping recompute calls. Node.js is
+  // single-threaded so true interleaving cannot occur, but two rapid PATCH
+  // requests can queue back-to-back synchronous calls whose intermediate
+  // writes could be observed inconsistently. The flag also survives process
+  // restarts (initializeAppMeta resets it to "false" on startup).
+  const isRecomputing = readMeta(db, "schedule_recomputing", "false");
+  if (isRecomputing === "true") {
+    throw new Error("Schedule recomputation already in progress");
+  }
+  writeMeta(db, "schedule_recomputing", "true");
+
   try {
     // Read timezone and schedule options from app_meta
     const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
@@ -514,5 +536,8 @@ export function recomputeSchedule(
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[scheduler] schedule recompute failed: ${msg}`);
     throw err; // Propagate to caller
+  } finally {
+    // Always reset the lock so future recomputes are not blocked (CR-03).
+    writeMeta(db, "schedule_recomputing", "false");
   }
 }
