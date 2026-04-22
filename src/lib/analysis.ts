@@ -65,6 +65,11 @@ export interface ScheduleData {
   tomorrowFires: FireTime[];
   scheduleGeneratedAt: string | null;
   isPaused: boolean;
+  overrideStartTime: string | null;
+  peakWindowHours: string | null;
+  anchorOffsetMinutes: string | null;
+  defaultSeedTime: string | null;
+  userTimezone: string | null;
 }
 
 export interface SendLogEntry {
@@ -425,6 +430,13 @@ export function buildDashboardData(
   const scheduleGeneratedAt = meta.get("schedule_generated_at") || null;
   const isPaused = meta.get("paused") === "true";
 
+  // Extract override fields from app_meta
+  const overrideStartTime = meta.get("schedule_override_start_time") ?? null;
+  const peakWindowHours = meta.get("peak_window_hours") ?? null;
+  const anchorOffsetMinutes = meta.get("anchor_offset_minutes") ?? null;
+  const defaultSeedTime = meta.get("default_seed_time") ?? null;
+  const userTimezone = meta.get("user_timezone") ?? null;
+
   // Build send history from send_log
   const sendLogRows = querySendLog(config, { limit: 20, orderDesc: true });
   const sendHistory = sendLogRows
@@ -467,6 +479,11 @@ export function buildDashboardData(
       tomorrowFires,
       scheduleGeneratedAt,
       isPaused,
+      overrideStartTime,
+      peakWindowHours,
+      anchorOffsetMinutes,
+      defaultSeedTime,
+      userTimezone,
     },
     sendHistory,
   };
