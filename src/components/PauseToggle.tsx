@@ -21,7 +21,9 @@ export function PauseToggle({
       setShowConfirmPause(true);
       return;
     }
-    // Unpausing — no confirmation needed
+    // Unpausing — clear any stale modal state before the async call so that
+    // a rapid re-toggle cannot leave the dialog stuck open (CR-02).
+    setShowConfirmPause(false);
     await doTogglePause(false);
   };
 
@@ -35,9 +37,14 @@ export function PauseToggle({
       });
       if (!response.ok) throw new Error("Failed to toggle pause");
       if (onRefetch) await onRefetch();
+      // Clear confirmation dialog on success (covers the pause=true path where
+      // the dialog was still open when doTogglePause was called from the modal).
       setShowConfirmPause(false);
     } catch (err) {
       console.error("Pause toggle failed:", err);
+      // Re-open confirmation dialog if save failed while pausing, so the
+      // user knows the action did not complete (CR-02).
+      if (pause) setShowConfirmPause(true);
     } finally {
       setIsLoading(false);
     }
