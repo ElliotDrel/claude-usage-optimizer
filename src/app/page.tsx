@@ -9,6 +9,7 @@ import { PeakHours } from "@/components/PeakHours";
 import { Heatmap } from "@/components/Heatmap";
 import { ExtraUsage } from "@/components/ExtraUsage";
 import { ExtraUsageCard } from "@/components/ExtraUsageCard";
+import { OptimalScheduleCard } from "@/components/OptimalScheduleCard";
 
 export default function DashboardPage() {
   const [data, setData] = useState<(DashboardData & { demoMode?: boolean }) | null>(null);
@@ -175,6 +176,10 @@ export default function DashboardPage() {
       )}
 
       <div className="space-y-8">
+        <div className="animate-fade-up stagger-0">
+          <OptimalScheduleCard data={data} />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-1">
           <div className="lg:col-span-2">
             <Section title="Collector" label="System Health">
