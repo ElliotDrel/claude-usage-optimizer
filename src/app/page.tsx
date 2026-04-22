@@ -10,6 +10,11 @@ import { Heatmap } from "@/components/Heatmap";
 import { ExtraUsage } from "@/components/ExtraUsage";
 import { ExtraUsageCard } from "@/components/ExtraUsageCard";
 import { OptimalScheduleCard } from "@/components/OptimalScheduleCard";
+import { TimezoneWarningBanner } from "@/components/TimezoneWarningBanner";
+import { SendNowButton } from "@/components/SendNowButton";
+import { PauseToggle } from "@/components/PauseToggle";
+import { ScheduleOverridesPanel } from "@/components/ScheduleOverridesPanel";
+import { SendHistoryPanel } from "@/components/SendHistoryPanel";
 
 export default function DashboardPage() {
   const [data, setData] = useState<(DashboardData & { demoMode?: boolean }) | null>(null);
@@ -177,10 +182,33 @@ export default function DashboardPage() {
 
       <div className="space-y-8">
         <div className="animate-fade-up stagger-0">
+          <TimezoneWarningBanner data={data} />
+        </div>
+
+        <div className="animate-fade-up stagger-0">
           <OptimalScheduleCard data={data} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up stagger-2">
+          <div>
+            <Section title="Send" label="Manual Control">
+              <SendNowButton onRefetch={fetchData} />
+            </Section>
+          </div>
+          <div>
+            <PauseToggle data={data} onRefetch={fetchData} />
+          </div>
+        </div>
+
+        <div className="animate-fade-up stagger-3">
+          <ScheduleOverridesPanel data={data} onRefetch={fetchData} />
+        </div>
+
+        <div className="animate-fade-up stagger-4">
+          <SendHistoryPanel data={data} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-up stagger-5">
           <div className="lg:col-span-2">
             <Section title="Collector" label="System Health">
               <CollectorHealth data={data} />
@@ -198,13 +226,13 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="animate-fade-up stagger-2">
+        <div className="animate-fade-up stagger-6">
           <Section title="Timeline" label="Usage Over Time">
             <UsageTimeline data={data} />
           </Section>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up stagger-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-up stagger-7">
           <Section title="Peak Hours" label="Activity by Hour">
             <PeakHours data={data} />
           </Section>
@@ -213,7 +241,7 @@ export default function DashboardPage() {
           </Section>
         </div>
 
-        <div className="animate-fade-up stagger-4">
+        <div className="animate-fade-up stagger-8">
           <Section title="Raw API Response" label="All Fields">
             <ExtraUsage data={data} />
           </Section>
@@ -221,7 +249,7 @@ export default function DashboardPage() {
       </div>
 
       <footer
-        className="mt-12 pt-6 text-center animate-fade-up stagger-5"
+        className="mt-12 pt-6 text-center animate-fade-up stagger-9"
         style={{ borderTop: "1px solid var(--border-subtle)" }}
       >
         <p
