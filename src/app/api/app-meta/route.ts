@@ -6,6 +6,24 @@ import { recomputeSchedule } from "@/lib/scheduler";
 export const dynamic = "force-dynamic";
 
 /**
+ * WR-05: Server-side validators for schedule override keys.
+ * Each returns true if the value is acceptable, false if it should be rejected.
+ * Keys not listed here are accepted without format validation (e.g. paused, user_timezone).
+ */
+const OVERRIDE_VALIDATORS: Record<string, (v: string) => boolean> = {
+  schedule_override_start_time: (v) => v === "" || /^\d{2}:\d{2}$/.test(v),
+  peak_window_hours: (v) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) && n >= 3 && n <= 6;
+  },
+  anchor_offset_minutes: (v) => {
+    const m = parseInt(v, 10);
+    return Number.isFinite(m) && m >= 0 && m <= 15;
+  },
+  default_seed_time: (v) => /^\d{2}:\d{2}$/.test(v),
+};
+
+/**
  * PATCH /api/app-meta
  *
  * Writes a single key-value pair to app_meta and immediately triggers schedule recompute.
@@ -28,6 +46,16 @@ export async function PATCH(req: NextRequest) {
     if (!body.key || body.value === undefined) {
       return NextResponse.json(
         { error: "Missing key or value in request body" },
+        { status: 400 }
+      );
+    }
+
+    // WR-05: Server-side validation for keys with strict format requirements.
+    // Prevents NaN corruption from invalid values reaching parseInt in scheduler.
+    const validator = OVERRIDE_VALIDATORS[body.key];
+    if (validator && !validator(body.value)) {
+      return NextResponse.json(
+        { error: `Invalid value for key '${body.key}': '${body.value}'` },
         { status: 400 }
       );
     }
