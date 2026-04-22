@@ -3,52 +3,46 @@
 import { useEffect, useState } from "react";
 import type { DashboardData } from "@/lib/analysis";
 
-function getBrowserUTCOffset(): number {
-  // Returns -5 for EST, -7 for PDT, etc.
-  return new Date().getTimezoneOffset() / -60;
+/**
+ * getBrowserIANATimezone — returns the browser's IANA timezone name.
+ * DST-aware: Intl resolves the canonical name, so "America/New_York" is
+ * returned regardless of whether the browser is currently in EST or EDT.
+ */
+function getBrowserIANATimezone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-function parseUTCOffset(offsetString: string): number | null {
-  // Handles both "America/Los_Angeles" (parse via Intl) and direct "-5" format
-  if (offsetString.startsWith("-") || offsetString.startsWith("+")) {
-    return parseInt(offsetString, 10);
-  }
-  // For IANA name, compute UTC offset via Intl
-  try {
-    const ianaOffset = offsetString;
-    // Create two dates: one as UTC, one in the target timezone
-    const now = new Date();
-    const utcString = now.toLocaleString("en-US", { timeZone: "UTC" });
-    const tzString = now.toLocaleString("en-US", { timeZone: ianaOffset });
-
-    const utcDate = new Date(utcString);
-    const tzDate = new Date(tzString);
-
-    // Difference in hours
-    const offsetHours = Math.round((utcDate.getTime() - tzDate.getTime()) / (1000 * 60 * 60));
-    return offsetHours;
-  } catch {
-    return null;
-  }
+/**
+ * isRawNumericOffset — returns true if the stored value looks like a raw
+ * numeric UTC offset (e.g. "+5", "-7", "5") rather than an IANA name.
+ * These were stored by a previous version of the banner; we treat them as
+ * a mismatch so the user is prompted to overwrite with a valid IANA name.
+ */
+function isRawNumericOffset(value: string): boolean {
+  return /^[+-]?\d+(\.\d+)?$/.test(value.trim());
 }
 
 export function TimezoneWarningBanner({ data }: { data: DashboardData | null }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const browserOffset = getBrowserUTCOffset();
-  const storedOffsetString = data?.scheduleData?.userTimezone ?? "";
-  const storedOffset = parseUTCOffset(storedOffsetString);
+  const browserTimezone = getBrowserIANATimezone();
+  const storedTimezone = data?.scheduleData?.userTimezone ?? "";
 
   useEffect(() => {
-    // Check on first mount or when data changes
-    if (storedOffset !== null && storedOffset !== browserOffset) {
-      // Mismatch detected
+    // Treat absent or raw numeric stored values as a mismatch; prompt user
+    // to overwrite with the browser's IANA timezone name (CR-01, WR-01).
+    if (!storedTimezone || isRawNumericOffset(storedTimezone)) {
+      setIsVisible(true);
+      return;
+    }
+    // Compare IANA names directly — DST-safe, no offset arithmetic needed.
+    if (storedTimezone !== browserTimezone) {
       setIsVisible(true);
     }
-  }, [storedOffset, browserOffset]);
+  }, [storedTimezone, browserTimezone]);
 
-  if (!isVisible || storedOffset === null || storedOffset === browserOffset) {
+  if (!isVisible) {
     return null;
   }
 
@@ -60,7 +54,8 @@ export function TimezoneWarningBanner({ data }: { data: DashboardData | null }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key: "user_timezone",
-          value: String(browserOffset),
+          // Store the IANA timezone name, not a raw numeric offset (CR-01)
+          value: browserTimezone,
         }),
       });
       if (!response.ok) throw new Error("Failed to update timezone");
@@ -77,6 +72,10 @@ export function TimezoneWarningBanner({ data }: { data: DashboardData | null }) 
     // Note: dismissed for this session only; will re-appear on page reload if mismatch still exists
   };
 
+  const displayStored = storedTimezone && !isRawNumericOffset(storedTimezone)
+    ? storedTimezone
+    : storedTimezone || "(not set)";
+
   return (
     <div
       className="mb-4 px-4 py-3 rounded-lg flex items-center justify-between gap-4"
@@ -91,8 +90,8 @@ export function TimezoneWarningBanner({ data }: { data: DashboardData | null }) 
           Timezone Mismatch
         </p>
         <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-          Your browser is at UTC{browserOffset > 0 ? "+" : ""}{browserOffset}, but the
-          scheduler is set to {storedOffsetString}. Update scheduler to match browser?
+          Your browser timezone is <strong>{browserTimezone}</strong>, but the
+          scheduler is set to <strong>{displayStored}</strong>. Update scheduler to match browser?
         </p>
       </div>
       <div className="flex gap-2 shrink-0">
