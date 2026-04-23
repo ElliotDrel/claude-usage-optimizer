@@ -34,7 +34,7 @@ async function backupToGcs(db: Database.Database): Promise<void> {
 
   try {
     console.log("[backup] starting database backup");
-    backupDatabase(config, backupPath);
+    await backupDatabase(config, backupPath);
 
     console.log("[backup] compressing backup");
     const gzipStream = createWriteStream(gzipPath);

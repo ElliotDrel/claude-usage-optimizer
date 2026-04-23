@@ -263,10 +263,9 @@ export function querySendLog(
     .all(limit) as SendLogRow[];
 }
 
-export function backupDatabase(config: Config, outputPath: string): void {
+export async function backupDatabase(config: Config, outputPath: string): Promise<void> {
   const db = getDb(config);
   // Use better-sqlite3's .backup() method for online backup
-  const backup = db.backup(outputPath);
-  backup.step(-1); // -1 means all pages in one step
-  backup.finish();
+  // db.backup() returns a Promise that resolves when backup is complete
+  await db.backup(outputPath);
 }
