@@ -262,3 +262,11 @@ export function querySendLog(
     .prepare(`SELECT * FROM send_log ORDER BY fired_at ${orderClause} LIMIT ?`)
     .all(limit) as SendLogRow[];
 }
+
+export function backupDatabase(config: Config, outputPath: string): void {
+  const db = getDb(config);
+  // Use better-sqlite3's .backup() method for online backup
+  const backup = db.backup(outputPath);
+  backup.step(-1); // -1 means all pages in one step
+  backup.finish();
+}
