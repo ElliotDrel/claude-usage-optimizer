@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Sender Module** - Implement Node-side `sender.ts` (spawn `claude -p`, no retries per design spec §10, `send_log` writes) plus `POST /api/send-now` for manual-fire testing. *(Completed 2026-04-20)*
 - [x] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle. *(Completed 2026-04-21)*
 - [x] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview. *(Completed 2026-04-22)* ✓
-- [ ] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`.
+- [x] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`. *(Completed 2026-04-23)*
 - [ ] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes.
 - [ ] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture.
 
@@ -122,10 +122,10 @@ Plans:
 
 **Plans**: 4 plans
 Plans:
-- [ ] 06-01-PLAN.md — In-process backup job: src/lib/backup.ts, backupDatabase() helper, @google-cloud/storage integration (DATA-07, DATA-08)
-- [ ] 06-02-PLAN.md — Failure notifications: src/lib/notifier.ts, scheduler stall detection, send failure alerts via Discord webhook (NOTIFY-01, NOTIFY-02, NOTIFY-03)
-- [ ] 06-03-PLAN.md — Systemd service unit and env file template: /etc/systemd/system/claude-tracker.service, /etc/claude-sender.env.example (DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, DEPLOY-05)
-- [ ] 06-04-PLAN.md — HOSTING-STRATEGY.md rewrite: user-journey structure, copy-pasteable commands, post-deploy verification checklist (QUAL-03, QUAL-04)
+- [x] 06-01-PLAN.md — In-process backup job: src/lib/backup.ts, backupDatabase() helper, @google-cloud/storage integration (DATA-07, DATA-08)
+- [x] 06-02-PLAN.md — Failure notifications: src/lib/notifier.ts, scheduler stall detection, send failure alerts via Discord webhook (NOTIFY-01, NOTIFY-02, NOTIFY-03)
+- [x] 06-03-PLAN.md — Systemd service unit and env file template: /etc/systemd/system/claude-tracker.service, /etc/claude-sender.env.example (DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, DEPLOY-05)
+- [x] 06-04-PLAN.md — HOSTING-STRATEGY.md rewrite: user-journey structure, copy-pasteable commands, post-deploy verification checklist (QUAL-03, QUAL-04)
 
 ### Phase 7: Installer & Onboarding
 **Goal**: A non-technical user can go from "I have a GCP account and an OAuth token" to "running app on `127.0.0.1:3018` via SSH tunnel" in under 30 minutes using one `curl … | bash` command plus a first-run web wizard that collects the remaining secrets in a browser form.
