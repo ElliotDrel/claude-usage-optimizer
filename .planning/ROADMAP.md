@@ -120,7 +120,12 @@ Plans:
   5. `HOSTING-STRATEGY.md` is rewritten so Phases 3.6–3.7 describe a single-service deployment (no Python venv, no `claude-sender.service`).
   6. A documented post-deploy verification checklist confirms: service healthy, CLI authenticated, scheduler ticking, first fire lands in `send_log`, nightly backup lands in GCS.
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 06-01-PLAN.md — In-process backup job: src/lib/backup.ts, backupDatabase() helper, @google-cloud/storage integration (DATA-07, DATA-08)
+- [ ] 06-02-PLAN.md — Failure notifications: src/lib/notifier.ts, scheduler stall detection, send failure alerts via Discord webhook (NOTIFY-01, NOTIFY-02, NOTIFY-03)
+- [ ] 06-03-PLAN.md — Systemd service unit and env file template: /etc/systemd/system/claude-tracker.service, /etc/claude-sender.env.example (DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04, DEPLOY-05)
+- [ ] 06-04-PLAN.md — HOSTING-STRATEGY.md rewrite: user-journey structure, copy-pasteable commands, post-deploy verification checklist (QUAL-03, QUAL-04)
 
 ### Phase 7: Installer & Onboarding
 **Goal**: A non-technical user can go from "I have a GCP account and an OAuth token" to "running app on `127.0.0.1:3018` via SSH tunnel" in under 30 minutes using one `curl … | bash` command plus a first-run web wizard that collects the remaining secrets in a browser form.
@@ -158,7 +163,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
 | 4. Scheduler Wiring | 2/2 | Complete | 2026-04-21 |
 | 5. Dashboard Control Surface | 3/3 | Complete | 2026-04-22 |
-| 6. VM Deployment & Hardening | 0/TBD | Not started | — |
+| 6. VM Deployment & Hardening | 0/4 | Planned | — |
 | 7. Installer & Onboarding | 0/TBD | Not started | — |
 | 8. Quality & Acceptance | 0/TBD | Not started | — |
 
