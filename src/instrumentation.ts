@@ -5,6 +5,7 @@ export async function register() {
     const { getConfig } = await import("./lib/config");
     const { getDb } = await import("./lib/db");
     const { startScheduler } = await import("./lib/scheduler");
+    const { startBackupJob } = await import("./lib/backup");
     const collector = getCollector();
     const config = getConfig();
     const db = getDb(config);
@@ -24,6 +25,13 @@ export async function register() {
       console.log("[instrumentation] Scheduler started");
     }
 
+    let backupStop = () => {};
+    if (shouldStartScheduler) {
+      const backup = startBackupJob(db);
+      backupStop = backup.stop;
+      console.log("[instrumentation] Backup job started");
+    }
+
     if (config.autoOpenBrowser) {
       const { exec } = await import("node:child_process");
       exec(`start "" "${config.appUrl}"`);
@@ -32,6 +40,7 @@ export async function register() {
     const shutdown = () => {
       collector.stop();
       schedulerStop();
+      backupStop();
       process.exit(0);
     };
 
