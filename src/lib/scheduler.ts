@@ -12,6 +12,7 @@ import type Database from "better-sqlite3";
 import { getConfig } from "./config";
 import { querySnapshots, getDb } from "./db";
 import { send } from "./sender";
+import { postDiscordNotification } from "./notifier";
 import { peakDetector } from "./peak-detector";
 import { generateSchedule } from "./schedule";
 import { parseSnapshots } from "./queries";
@@ -49,6 +50,8 @@ function initializeAppMeta(db: Database.Database): void {
     // CR-03: lock flag reset to "false" on every startup so a previous crash
     // cannot permanently brick scheduling (see recomputeSchedule below).
     schedule_recomputing: "false",
+    last_tick_at: "",                      // ISO timestamp, written on every tick
+    notification_webhook_url: "",          // Discord webhook URL, opt-in
   };
 
   for (const [key, value] of Object.entries(defaults)) {
@@ -301,6 +304,9 @@ async function runTick(
   nowFn: () => Date,
   sendTimeoutMs?: number
 ): Promise<void> {
+  // Unconditionally write timestamp on every tick (stall detection depends on this)
+  writeMeta(db, "last_tick_at", nowFn().toISOString());
+
   // --- Step 1: Pause check ---
   const paused = readMeta(db, "paused", "false");
   if (paused === "true") {
@@ -309,6 +315,21 @@ async function runTick(
   }
 
   const now = nowFn();
+
+  // Check if more than 5 minutes since last tick (stall detection per D-06)
+  const lastTickAtStr = readMeta(db, "last_tick_at");
+  if (lastTickAtStr && lastTickAtStr !== now.toISOString()) {
+    const lastTick = new Date(lastTickAtStr);
+    const elapsedSeconds = (now.getTime() - lastTick.getTime()) / 1000;
+    if (elapsedSeconds > 300) { // 5 minutes = 300 seconds
+      console.error(`[scheduler] STALL DETECTED: ${elapsedSeconds}s since last tick`);
+      void postDiscordNotification(
+        "Scheduler Stall",
+        `No scheduler tick recorded for ${Math.floor(elapsedSeconds)}s (threshold: 300s)`,
+        now
+      );
+    }
+  }
 
   // --- Step 2: Recompute check ---
   const lastGeneratedAt = readMeta(db, "schedule_generated_at", "");
