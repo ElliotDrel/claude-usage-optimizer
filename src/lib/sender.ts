@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import type { Config } from "./config";
 import { insertSendLog, type SendLogRow } from "./db";
+import { postDiscordNotification } from "./notifier";
 
 // D-02: Questions ported verbatim from git history (claude_message_send_with_CC_CLI.py)
 const QUESTIONS = [
@@ -84,6 +85,13 @@ export async function send(
         error_message: msg,
       });
 
+      // Fire webhook notification on send failure (NOTIFY-01, D-05)
+      void postDiscordNotification(
+        "Send Failure",
+        `Send scheduled for ${scheduledFor || "manual trigger"} failed with status 'error': ${msg}`,
+        new Date()
+      );
+
       resolve(row);
     });
 
@@ -121,6 +129,15 @@ export async function send(
           response_excerpt: responseExcerpt,
           error_message: errorMessage,
         });
+
+        // Fire webhook notification on send failure (NOTIFY-01, D-05)
+        if (status !== "ok") {
+          void postDiscordNotification(
+            "Send Failure",
+            `Send scheduled for ${scheduledFor || "manual trigger"} failed with status '${status}': ${errorMessage || "unknown error"}`,
+            new Date()
+          );
+        }
 
         resolve(row);
       }
