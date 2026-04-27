@@ -73,114 +73,58 @@ Click the **SSH** button next to your VM name (opens a browser terminal). You no
 
 ---
 
-## Step 4: Prepare the VM (Copy-Paste This Entire Block)
+## Step 4: Run the One-Command Installer
 
-Copy the entire block below and paste it into the SSH terminal:
+Paste this single line into the SSH terminal:
 
 ```bash
-# Update system packages
-sudo apt-get update
-sudo apt-get install -y git sqlite3 curl
-
-# Add 2 GB swap (your VM has 1 GB RAM; swap helps during Node.js startup)
-if [ ! -f /swapfile ]; then
-  sudo fallocate -l 2G /swapfile
-  sudo chmod 600 /swapfile
-  sudo mkswap /swapfile
-  sudo swapon /swapfile
-  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-fi
-
-# Install Node.js 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install Google Cloud CLI (for backup uploads)
-curl https://sdk.cloud.google.com | bash
-exec -l $SHELL
-
-# Create the directory where we'll install the app
-sudo mkdir -p /opt/claude-usage-optimizer
-sudo chown "$USER" /opt/claude-usage-optimizer
-
-# Clone the repository
-cd /opt/claude-usage-optimizer
-git clone https://github.com/elliotdrel/claude-usage-optimizer.git .
-
-# Install Node dependencies and build
-npm install
-npm run build
+bash <(curl -fsSL https://raw.githubusercontent.com/elliotdrel/claude-usage-optimizer/main/scripts/install.sh)
 ```
 
-This takes about 2–3 minutes. When it finishes, you should see no errors.
+The installer handles everything automatically:
+- System packages (`git`, `sqlite3`, `curl`)
+- 2 GB swap file (needed for 1 GB RAM VM)
+- Node.js 20 via NodeSource
+- Claude Code CLI (`npm install -g @anthropic-ai/claude-code`)
+- Clone repo to `/opt/claude-usage-optimizer`, build, and prune dev deps
+- Service user `claude-tracker`
+- Systemd unit installed and enabled
+- Sudoers entry for the setup wizard's privilege helper
+- Pre-created `/etc/claude-sender.env` (mode 600, root:root)
+- Database initialized with `setup_complete='false'` to trigger the first-run wizard
+
+**This takes about 5–8 minutes.** When it finishes you will see:
+
+```
+Installation complete. Service is starting. Access the setup wizard at http://127.0.0.1:3018
+```
+
+The installer is idempotent — safe to re-run if anything goes wrong.
 
 ---
 
-## Step 5: Configure Secrets (OAuth Token & Environment)
+## Step 5: Complete Setup in Your Browser
 
-Replace `YOUR_OAUTH_TOKEN` below with the token you copied in Step 1, then paste the entire block:
-
-```bash
-# Create the environment file (holds your OAuth token and configuration)
-sudo tee /etc/claude-sender.env > /dev/null <<'EOF'
-# Security: This file contains your OAuth token. It must have mode 600 (readable by service only).
-
-# OAuth Authentication
-CLAUDE_CODE_OAUTH_TOKEN=YOUR_OAUTH_TOKEN
-
-# Server Binding (never change these)
-HOSTNAME=127.0.0.1
-PORT=3018
-NODE_ENV=production
-
-# GCS Backup Bucket (you'll fill this in after creating the bucket)
-GCS_BACKUP_BUCKET=claude-optimizer-backups
-
-# Optional: Discord webhook for failure notifications (add later if you want)
-# DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
-EOF
-
-# Secure the file: readable by root and the service user only
-sudo chmod 600 /etc/claude-sender.env
-
-# Verify correct permissions (should show: -rw-------)
-ls -l /etc/claude-sender.env
-```
-
-**Important:** The output of `ls -l` should show `-rw-------` (6 dashes at the end). If it shows `-rw-r--r--`, the file is world-readable and anyone on the VM could see your OAuth token. Fix it with: `sudo chmod 600 /etc/claude-sender.env`
-
----
-
-## Step 6: Create the Non-Root Service User
+Open an SSH tunnel on your laptop:
 
 ```bash
-# Create a dedicated user for the service (doesn't need a login shell)
-sudo useradd -r -s /bin/bash -d /opt/claude-usage-optimizer claude-tracker
+ssh -L 3018:127.0.0.1:3018 YOUR_VM_USER@YOUR_VM_IP
 ```
 
----
+Then open **http://127.0.0.1:3018** in your browser. You will be redirected to the setup wizard automatically.
 
-## Step 7: Install the Systemd Service
+Fill in the four fields:
 
-Copy the service unit file from the repo to the systemd directory:
+| Field | What to enter |
+|-------|--------------|
+| **Claude Code OAuth Token** | The `sk-ant-oat-...` token from Step 1 |
+| **Usage Auth Type** | Cookie (paste session cookie) or Bearer (paste bearer token) |
+| **Timezone** | Your IANA timezone, e.g. `America/New_York` |
+| **GCS Backup Bucket** | Optional — leave blank if you haven't created a bucket yet |
 
-```bash
-sudo cp /opt/claude-usage-optimizer/claude-tracker.service /etc/systemd/system/
+Click **Complete Setup**. The wizard writes your secrets to `/etc/claude-sender.env` and restarts the service. You will be redirected to the dashboard.
 
-# Reload systemd to recognize the new unit file
-sudo systemctl daemon-reload
-
-# Enable the service so it starts automatically on reboot
-sudo systemctl enable claude-tracker
-
-# Start the service now
-sudo systemctl start claude-tracker
-
-# Check that it's running (you should see "active (running)" in green)
-sudo systemctl status claude-tracker
-```
-
-If you see `active (running)`, congratulations — the app is now running!
+> **Note:** Steps 5–7 from the old guide (manual env file, service user, systemd install) are now handled entirely by the installer and setup wizard.
 
 ---
 

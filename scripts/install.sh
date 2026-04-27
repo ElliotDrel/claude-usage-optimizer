@@ -84,6 +84,16 @@ if [ "${NODE_OK}" = "false" ]; then
   echo "  Node.js installed: $(node --version)"
 fi
 
+# ── Step 5b: Install Claude Code CLI (idempotent) ─────────────────────────────
+echo "[4b/14] Checking Claude Code CLI..."
+if ! command -v claude > /dev/null 2>&1; then
+  echo "  Installing Claude Code CLI..."
+  npm install -g @anthropic-ai/claude-code
+  echo "  Claude Code CLI installed: $(claude --version 2>/dev/null || echo 'ok')"
+else
+  echo "  Claude Code CLI already installed: $(claude --version 2>/dev/null || echo 'ok')"
+fi
+
 # ── Step 6: Create service user (idempotent) ──────────────────────────────────
 echo "[5/14] Checking service user..."
 if ! id -u "${SERVICE_USER}" > /dev/null 2>&1; then
