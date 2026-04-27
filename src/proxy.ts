@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getConfig } from "@/lib/config";
 import { getAppMeta } from "@/lib/db";
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   // Never intercept API setup route or static assets
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.next();
   } catch (err) {
-    console.warn("[middleware] setup check failed:", err);
+    console.warn("[proxy] setup check failed:", err);
 
     // Conservative: if DB is not ready and user is not on /setup, send them there
     if (!pathname.startsWith("/setup")) {
