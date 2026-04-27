@@ -51,6 +51,21 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
+    // CR-01: Reject values containing newlines — they would inject attacker-controlled
+    // lines into /etc/claude-sender.env when the privileged helper writes the file.
+    const hasDangerousChars = (v: string) => /[\r\n\0]/.test(v);
+    if (
+      hasDangerousChars(oauthToken) ||
+      hasDangerousChars(auth.value) ||
+      (typeof userTimezone === "string" && hasDangerousChars(userTimezone)) ||
+      (typeof gcsBucket === "string" && hasDangerousChars(gcsBucket))
+    ) {
+      return NextResponse.json(
+        { error: "Invalid characters in input" },
+        { status: 400 }
+      );
+    }
+
     const timezone =
       typeof userTimezone === "string" && userTimezone.trim()
         ? userTimezone.trim()
@@ -82,6 +97,15 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     fs.mkdirSync(config.dataDir, { recursive: true });
     fs.writeFileSync(stagingPath, envContent, { mode: 0o640 });
+    // Ensure mode is set even if file pre-existed (CR WR-02)
+    fs.chmodSync(stagingPath, 0o640);
+
+    // CR-02: Mark setup complete BEFORE invoking the helper. The helper restarts
+    // the service (systemctl restart), which sends SIGTERM to this very process.
+    // If we wrote the flag after the sudo call, the flag write could be killed
+    // mid-execution — leaving the user stuck in an infinite setup-redirect loop.
+    // On helper failure we roll back the flag below.
+    setAppMeta(config, "setup_complete", "true");
 
     // Invoke sudo helper via execFileNoThrow (safe — no shell, no args, D-07)
     // All config comes from the staging file; no secrets in CLI arguments (T-07-01)
@@ -95,6 +119,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
 
     if (result.status !== 0) {
+      // Roll back the flag so the user can retry setup
+      try {
+        setAppMeta(config, "setup_complete", "false");
+      } catch {
+        // Best-effort rollback
+      }
       // Clean up staging file before returning error
       try {
         fs.unlinkSync(stagingPath);
@@ -108,9 +138,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 500 }
       );
     }
-
-    // Mark setup complete in app_meta (D-08)
-    setAppMeta(config, "setup_complete", "true");
 
     return NextResponse.json(
       { success: true, message: "Setup complete. Redirecting to dashboard..." },

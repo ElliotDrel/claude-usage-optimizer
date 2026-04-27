@@ -15,7 +15,7 @@
 #   - Target file written with mode 600, ownership root:root
 #   - Error messages go to stderr (>&2) for journald/syslog capture
 
-set -e
+set -eu
 
 # ── Argument guard ────────────────────────────────────────────────────────────
 # Reject any invocation that passes arguments. This is the primary injection

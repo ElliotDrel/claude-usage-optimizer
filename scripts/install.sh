@@ -105,12 +105,17 @@ else
 fi
 
 # ── Step 8: Install dependencies and build ────────────────────────────────────
-echo "[7/14] Installing npm dependencies (production only)..."
+# Install ALL deps first (build tools like TypeScript/Tailwind are devDeps),
+# build, then prune to production-only. Running --omit=dev before build fails.
+echo "[7/14] Installing npm dependencies..."
 cd "${REPO_DIR}"
-npm ci --omit=dev
+npm ci
 
 echo "[8/14] Building Next.js app..."
 npm run build
+
+echo "  Pruning dev dependencies after build..."
+npm prune --omit=dev
 
 # ── Step 9: Set up data directory (owned by service user) ────────────────────
 echo "[9/14] Setting up data directory..."
