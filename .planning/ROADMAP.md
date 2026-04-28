@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Scheduler Wiring** - Land `scheduler.ts`, register the 60-second tick loop in `instrumentation.ts`, wire nightly 03:00 UTC recompute + catch-up-on-restart + pause toggle. *(Completed 2026-04-21)*
 - [x] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview. *(Completed 2026-04-22)* ✓
 - [x] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`. *(Completed 2026-04-23)*
-- [ ] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes.
+- [x] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes. *(Completed 2026-04-28)*
 - [ ] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture.
 
 ## Phase Details
