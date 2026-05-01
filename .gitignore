@@ -1,7 +1,6 @@
 # ===== Node / Next.js (Claude Usage Tracker) =====
 **/node_modules/
 **/.next/
-package-lock.json
 **/out/
 **/build/
 **/.vercel/
