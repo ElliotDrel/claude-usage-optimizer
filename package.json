@@ -1,9 +1,23 @@
 {
-  "name": "claude-usage-tracker",
-  "version": "0.1.0",
+  "name": "claude-usage-optimizer",
+  "version": "1.0.0",
   "private": false,
-  "license": "UNLICENSED",
-  "description": "Local-first dashboard and scheduler for observing Claude usage and optimizing send timing.",
+  "license": "MIT",
+  "author": "Elliot Drel",
+  "description": "Detect your Claude usage peak block and anchor sends so two consecutive 5-hour windows cover it — doubling usable hours per subscription.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ElliotDrel/claude-usage-optimizer"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "agent-sdk",
+    "usage-optimization",
+    "openclaw",
+    "claude-agent-sdk"
+  ],
   "scripts": {
     "dev": "next dev --hostname localhost --port 3017",
     "build": "next build",
