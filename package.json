@@ -11,7 +11,7 @@
     "startup:restart": "powershell -ExecutionPolicy Bypass -File .\\scripts\\restart-startup.ps1",
     "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",
     "lint": "eslint",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test --test-force-exit test/*.test.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.10.0",

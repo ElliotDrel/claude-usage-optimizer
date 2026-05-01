@@ -436,11 +436,12 @@ async function runTick(
  */
 export async function tickOnce(
   db: Database.Database,
-  nowFn?: () => Date
+  nowFn?: () => Date,
+  sendTimeoutMs?: number
 ): Promise<void> {
   const config = getConfig();
   const clockFn = nowFn ?? (() => new Date());
-  await runTick(db, config, clockFn);
+  await runTick(db, config, clockFn, sendTimeoutMs);
 }
 
 /**

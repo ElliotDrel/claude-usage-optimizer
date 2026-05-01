@@ -284,8 +284,8 @@ describe("scheduler: tick fires due slot (SCHED-11)", () => {
     // Prevent recompute: mark schedule already generated today so tick skips recompute
     setMeta(db, "schedule_generated_at", "2026-04-20T03:00:00Z");
 
-    // Run one tick with a short send timeout
-    await tickOnce(db, () => frozenNow);
+    // Run one tick with a short send timeout so claude CLI doesn't hang the test
+    await tickOnce(db, () => frozenNow, 50);
 
     const done = JSON.parse(getMeta(db, "schedule_fires_done") ?? "[]") as string[];
     assert.ok(
@@ -309,8 +309,10 @@ describe("scheduler: tick fires due slot (SCHED-11)", () => {
     setMeta(db, "schedule_fires", JSON.stringify([{ timestamp: fireTs, isAnchor: false }]));
     setMeta(db, "schedule_fires_done", JSON.stringify([fireTs])); // already done
     setMeta(db, "paused", "false");
+    // Prevent recompute so no newly-generated fires become due during the tick
+    setMeta(db, "schedule_generated_at", "2026-04-20T03:00:00Z");
 
-    await tickOnce(db, () => frozenNow);
+    await tickOnce(db, () => frozenNow, 50);
 
     const count = (
       db.prepare("SELECT COUNT(*) as cnt FROM send_log").get() as { cnt: number }
@@ -340,7 +342,7 @@ describe("scheduler: nightly recompute (SCHED-01)", () => {
     setMeta(db, "paused", "false");
 
     // Run one tick — should detect stale schedule and recompute
-    await tickOnce(db, () => frozenNow);
+    await tickOnce(db, () => frozenNow, 50);
 
     const generatedAt = getMeta(db, "schedule_generated_at") ?? "";
     assert.notStrictEqual(
@@ -371,7 +373,7 @@ describe("scheduler: nightly recompute (SCHED-01)", () => {
     setMeta(db, "paused", "false");
 
     // Run one tick — should NOT recompute since already done today
-    await tickOnce(db, () => frozenNow);
+    await tickOnce(db, () => frozenNow, 50);
 
     const generatedAt = getMeta(db, "schedule_generated_at");
     assert.strictEqual(
