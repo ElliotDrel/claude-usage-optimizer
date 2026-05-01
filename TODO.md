@@ -39,6 +39,10 @@ Every `/v1/messages` response from `api.anthropic.com` already includes utilizat
 
 The optimizer already avoids Anthropic's peak hours implicitly through delta tracking — higher multipliers register as larger deltas, so those hours naturally score lower in peak detection. The next step is making this explicit: incorporate Anthropic's publicly documented peak hours as a hard constraint alongside the user's detected peak block, so the scheduler places tasks in windows confirmed off-peak for both. This would give users visibility into when and why tasks are being scheduled.
 
+### ChatGPT / Codex support
+
+Implement the same quota-window optimization for ChatGPT Plus/Pro and Codex users. Both have analogous usage limits that reset on a rolling basis. The peak detection and scheduling logic is model-agnostic — the main work is mapping their rate limit API responses or response headers to the same delta-tracking interface the Claude collector uses.
+
 ### Agent workflow scheduling
 
 More ambitious: the agent monitors current utilization in real time and, based on time of day and the user's peak hours, delays high-cost tasks (multi-turn research, large tool call chains) until immediately after the next anchor send when quota is freshest. Low-cost tasks run in the meantime. User-overrideable for anything urgent. When a user offloads a task to a background agent, a few hours' delay rarely matters to them — but to their quota, it can make a significant difference.
