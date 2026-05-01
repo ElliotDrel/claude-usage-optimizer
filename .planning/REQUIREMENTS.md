@@ -9,7 +9,7 @@
 
 - [ ] **SCHED-01**: System recomputes the optimal schedule at 03:00 UTC daily using all historical `status='ok'` snapshots.
 - [ ] **SCHED-02**: Peak detection buckets snapshot deltas by user-local hour-of-day using the configured IANA timezone (default `America/Los_Angeles`).
-- [ ] **SCHED-03**: Peak detection slides a 4-hour window across 24 hourly buckets (wrapping midnight) and picks the block with the largest delta sum.
+- [ ] **SCHED-03**: Peak detection slides a configurable window (3–6 hours, default 4) across 24 hourly buckets (wrapping midnight) and picks the block with the largest delta sum.
 - [ ] **SCHED-04**: Daily anchor fire time equals the peak-block midpoint plus a 5-minute safety offset.
 - [ ] **SCHED-05**: Daily schedule contains 5 fire times spaced every 5 hours, all wrapping past midnight so no fire is dropped.
 - [ ] **SCHED-06**: Non-anchor fires receive 0–5 minute jitter; the anchor fire is exact.
@@ -119,7 +119,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | SCHED-01 | Phase 4 — Scheduler Wiring | Pending |
 | SCHED-02 | Phase 2 — Algorithm Core | Pending |
-| SCHED-03 | Phase 2 — Algorithm Core | Pending |
+| SCHED-03 | Phase 9 — Integration Gap Closure | Pending |
 | SCHED-04 | Phase 2 — Algorithm Core | Pending |
 | SCHED-05 | Phase 2 — Algorithm Core | Pending |
 | SCHED-06 | Phase 2 — Algorithm Core | Pending |
@@ -151,9 +151,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-06 | Phase 5 — Dashboard Control Surface | Pending |
 | UI-07 | Phase 5 — Dashboard Control Surface | Pending |
 | UI-08 | Phase 1 — Foundation & DB Refactor | Pending |
-| INSTALL-01 | Phase 7 — Installer & Onboarding | Pending |
-| INSTALL-02 | Phase 7 — Installer & Onboarding | Pending |
-| INSTALL-03 | Phase 7 — Installer & Onboarding | Pending |
+| INSTALL-01 | Phase 9 — Integration Gap Closure | Pending |
+| INSTALL-02 | Phase 9 — Integration Gap Closure | Pending |
+| INSTALL-03 | Phase 9 — Integration Gap Closure | Pending |
 | INSTALL-04 | Phase 7 — Installer & Onboarding | Pending |
 | NOTIFY-01 | Phase 6 — VM Deployment & Hardening | Pending |
 | NOTIFY-02 | Phase 6 — VM Deployment & Hardening | Pending |

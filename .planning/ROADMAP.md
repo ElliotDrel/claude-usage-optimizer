@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`. *(Completed 2026-04-23)*
 - [x] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes. *(Completed 2026-04-28)*
 - [x] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture. *(Completed 2026-05-01)*
+- [ ] **Phase 9: Integration Gap Closure** - Mount Next.js setup gate middleware so first-run wizard activates on first browser visit; parameterize peakDetector to consume `peak_window_hours` from app_meta so user override takes effect.
 
 ## Phase Details
 
@@ -151,6 +152,20 @@ Plans:
   4. Running the documented procedure end-to-end takes under 10 minutes for a fresh developer.
 **Plans**: 0 (tests written in-phase during Phases 2–4; QUAL-02 delivered as docs/DEV-LOOP.md)
 
+### Phase 9: Integration Gap Closure
+**Goal**: Close both critical integration gaps found in the v1.0 audit: mount the setup gate as Next.js middleware so first-run wizard activates on first browser visit, and parameterize `peakDetector` to consume `peak_window_hours` from `app_meta` so the dashboard override actually takes effect.
+**Depends on**: Phase 7, Phase 2
+**Requirements**: INSTALL-01, INSTALL-02, INSTALL-03, SCHED-03
+**Gap Closure:** Closes gaps from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. `src/middleware.ts` exists, exports `setupGate as middleware` from `./proxy`, and includes a matcher that covers all non-API, non-static routes.
+  2. On first browser visit with `setup_complete` unset, the middleware redirects to `/setup`; after completing the wizard, subsequent visits reach the dashboard directly.
+  3. `peakDetector()` in `src/lib/peak-detector.ts` accepts an optional `windowHours` parameter (default 4).
+  4. `scheduler.ts` reads `peak_window_hours` from `app_meta` and passes it to `peakDetector` on every recompute.
+  5. Setting `peak_window_hours=5` in the Overrides panel causes the scheduler to use a 5-hour detection window on the next recompute.
+  6. `peak-detector.test.ts` covers at least one test case with a non-default window size.
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
@@ -166,6 +181,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 6. VM Deployment & Hardening | 4/4 | Complete | 2026-04-23 |
 | 7. Installer & Onboarding | 3/3 | Complete | 2026-04-28 |
 | 8. Quality & Acceptance | 0/0 | Complete | 2026-05-01 |
+| 9. Integration Gap Closure | TBD | Pending | — |
 
 ---
 
