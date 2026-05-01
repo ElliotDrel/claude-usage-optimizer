@@ -58,7 +58,7 @@ Full optimizer instances per user (Docker sidecar, systemd service, or embedded 
 
 ## Future Optimization A: Smart schedule shifting
 
-Anthropic applies a multiplier to rate limit consumption during high-traffic hours. The same workload that costs 30% of a window at 3am may cost 60% at 2pm. A smarter scheduler would track Anthropic's peak hours (learnable from reset-to-reset delta ratios over time) and shift scheduled agent tasks away from both the user's interactive peak and Anthropic's infrastructure peak. This extends how far each quota window goes, on top of the anchor-window positioning.
+Anthropic's peak hours are publicly documented and apply a multiplier to rate limit consumption — the same workload that costs 30% of a window at 3am may cost 60% at 2pm. The user's peak block is already detected by the optimizer. A smarter scheduler combines both inputs: it places scheduled agent tasks in windows that are off-peak for both the user and Anthropic, ensuring automated work doesn't compete with interactive sessions or inflate its own quota cost. The goal is that the user's peak hours are reserved for the user, and agent tasks run when quota is cheapest.
 
 ---
 
