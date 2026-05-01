@@ -1,9 +1,18 @@
 # Claude Usage Optimizer
 
-Monitors your Claude Pro/Max usage, detects your 4-hour peak block, and fires a daily anchor send at its midpoint — so two consecutive 5-hour quota windows span your most active period. The result is roughly twice as many usable agent-hours per subscription dollar, with no configuration tuning required.
+## The problem
 
-→ Architecture overview: [ARCHITECTURE.md](./ARCHITECTURE.md)  
-→ Agent integration: [INTEGRATION-PROPOSAL.md](./INTEGRATION-PROPOSAL.md)
+Claude Pro/Max gives you a rolling 5-hour usage window shared across claude.ai, Claude Code, and any agent running on your subscription. If you use Claude heavily throughout the day — especially with Claude Code or autonomous agents — you burn through that window fast. When it runs out mid-session, you're throttled until it resets, regardless of how much of the day is left.
+
+The window doesn't reset on a fixed schedule. It resets 5 hours after it last opened. That means *when* the window opens matters as much as how much quota you have.
+
+## How this fixes it
+
+This tool watches your actual usage, finds the 4-hour block when you're most active, and fires a lightweight daily send at its midpoint. That send opens a fresh window exactly at your peak — so two consecutive 5-hour windows overlap your most active period instead of one.
+
+The result is roughly twice the usable quota during your peak hours, with no manual configuration. The schedule updates nightly as your usage patterns change.
+
+→ Architecture overview: [ARCHITECTURE.md](./ARCHITECTURE.md)
 
 ---
 
