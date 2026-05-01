@@ -1,109 +1,120 @@
 # Claude Usage Optimizer
 
-**Get ~2x more usable hours from your Claude Pro/Max subscription.**
+Monitors your Claude Pro/Max usage, detects your 4-hour peak block, and fires a daily anchor send at its midpoint — so two consecutive 5-hour quota windows span your most active period. The result is roughly twice as many usable agent-hours per subscription dollar, with no configuration tuning required.
 
-Claude's quota resets on a rolling 5-hour window. This tool watches your actual usage, finds the 4-hour block when you're most active, and fires an anchor send at its midpoint — so two consecutive 5-hour windows span your peak. The result: more agent-hours available exactly when you need them, at no extra cost.
-
-Built for Claude Code power users and OpenClaw-style agents running on subscription auth.
-
----
-
-## The problem
-
-Claude Pro/Max gives you a 5-hour rolling usage window shared across claude.ai, Claude Code, and any agent using `@anthropic-ai/claude-agent-sdk`. Heavy users and autonomous agents burn through windows constantly. Idle hours waste quota; busy hours hit limits.
-
-## The solution
-
-```
-Detect your 4-hour peak block
-         ↓
-Anchor a send at its midpoint
-         ↓
-Two consecutive 5-hour windows now span your peak
-         ↓
-~2x more usable hours, same subscription
-```
-
-**How the math works:** If your peak runs 14:00–18:00, the anchor fires at 16:05. Window A covers 11:05–16:05, Window B covers 16:05–21:05. Both high-usage periods are covered by fresh windows.
+→ Architecture overview: [ARCHITECTURE.md](./ARCHITECTURE.md)  
+→ Agent integration: [INTEGRATION-PROPOSAL.md](./INTEGRATION-PROPOSAL.md)
 
 ---
 
-## Architecture
+## Prerequisites
 
-```
-┌─────────────┐   polls every   ┌──────────┐   analyzed by   ┌──────────────┐
-│  Collector  │ ──60s–5min──▶  │  SQLite  │ ──────────────▶ │   Analyzer   │
-│ (adaptive)  │                 │  (disk)  │                  │  (peak algo) │
-└─────────────┘                 └──────────┘                  └──────┬───────┘
-                                                                      │
-                                                               ┌──────▼───────┐
-                                                               │  Scheduler   │
-                                                               │ (5-slot plan)│
-                                                               └──────┬───────┘
-                                                                      │
-                                                               ┌──────▼───────┐
-                                                               │    Sender    │
-                                                               │ (claude CLI) │
-                                                               └──────────────┘
-```
-
-The collector adapts its polling rate to your activity: slow when idle, fast during active sessions. The peak detector uses a sliding 4-hour window over your historical hourly deltas to find the optimal anchor time. The scheduler fires 5 sends per day spaced 5 hours apart, anchored to that midpoint.
-
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full module breakdown.
+- Node.js 20+
+- A Claude **Pro or Max** subscription
+- `claude` CLI installed and authenticated (`claude --version` should work)
 
 ---
 
-## Quick start
+## Local setup (2 min)
 
 ```bash
+git clone https://github.com/your-username/claude-usage-optimizer.git
+cd claude-usage-optimizer
 npm ci
 npm run dev
 ```
 
-Open [http://localhost:3017](http://localhost:3017). The app runs in demo mode by default — no Claude credentials needed to explore the UI.
+Open [http://localhost:3017](http://localhost:3017). The app runs in **demo mode** by default — no credentials needed to explore the dashboard.
 
-To use real data, copy `.env.example` to `.env.local` and add your auth:
+---
+
+## Connect real data
+
+Copy the example env file:
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local — see comments inside for which fields you need
+```
+
+Then pick **one** auth method and fill it in:
+
+### Option A — Session cookie (recommended)
+
+1. Open [claude.ai](https://claude.ai) in Chrome/Firefox
+2. Open DevTools → Network tab → reload the page
+3. Click any request to `claude.ai` → Headers → find the `Cookie:` request header
+4. Copy the entire value and paste it into `.env.local`:
+
+```
+CLAUDE_SESSION_COOKIE=<paste full cookie string here>
+```
+
+This gives you richer data (usage breakdown, extra credits, payment info) because it can hit the organization API endpoints.
+
+### Option B — OAuth bearer token
+
+If you use the Claude Code CLI, your token is already on disk:
+
+```bash
+cat ~/.claude/.credentials.json
+```
+
+Copy the `token` value into `.env.local`:
+
+```
+CLAUDE_BEARER_TOKEN=<token value>
+```
+
+Or leave `CLAUDE_BEARER_TOKEN` blank — the app will auto-read `~/.claude/.credentials.json` if present.
+
+### Start with real data
+
+```bash
 npm run dev
 ```
+
+The dashboard will show live usage within the first polling interval (up to 5 minutes in idle tier).
+
+---
+
+## Enable anchor sends
+
+The scheduler fires a daily `claude` CLI send at your detected anchor time. To enable it, add your OAuth token:
+
+```bash
+# Get your token from the Claude Code CLI
+claude setup-token
+```
+
+Add to `.env.local`:
+
+```
+CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat-...
+```
+
+The sender uses the same token the Claude Code CLI uses — not an API key. This must be a Pro/Max subscription token.
+
+---
+
+## Verify it's working
+
+After a day of usage data, the dashboard will show:
+
+- **Peak block** — detected 4-hour window of highest activity
+- **Anchor time** — the midpoint send time (local + UTC)
+- **Fire schedule** — 5 daily sends spaced 5 hours apart
+- **Send history** — log of past sends with status and response excerpts
+
+The schedule regenerates nightly. It requires ≥3 calendar days of data before the peak detector has enough signal.
 
 ---
 
 ## Production deploy (GCP free tier)
 
-One systemd service on a GCP e2-micro VM. Free forever.
+Runs as a single systemd service on a GCP e2-micro VM. Free forever.
 
-→ See [docs/HOSTING-STRATEGY.md](docs/HOSTING-STRATEGY.md) for the full step-by-step guide (~30 min, no deep CLI knowledge required).
-
----
-
-## Built for embedding into agent products
-
-The peak-detection algorithm is exposed as a standalone REST endpoint:
-
-```bash
-GET /api/optimize
-```
-
-```json
-{
-  "peakBlock": { "startHour": 14, "endHour": 18, "sumDelta": 0.83, "midpoint": 16 },
-  "anchorTimeLocal": "16:05",
-  "anchorTimeUtc": "2026-05-01T20:05:00.000Z",
-  "fireSchedule": [{ "hour": 16, "minute": 5, "isAnchor": true }, ...],
-  "timezone": "America/New_York",
-  "computedAt": "2026-05-01T15:23:00.000Z"
-}
-```
-
-Any agent that runs on a Claude subscription can call this endpoint and fire its own anchor send — no UI required. The pure-function core (`peak-detector.ts`, `schedule.ts`, `usage-window.ts`, `normalize.ts`) is designed to be extracted and embedded directly into agent runtimes.
-
-→ See [INTEGRATION-PROPOSAL.md](./INTEGRATION-PROPOSAL.md) for how this drops into OpenClaw-style agent products, with three integration patterns ranked by effort.
-
-→ See [examples/agent-sdk-anchor-send.ts](./examples/agent-sdk-anchor-send.ts) for a working `@anthropic-ai/claude-agent-sdk` implementation.
+Full step-by-step guide (≈30 min, no deep CLI knowledge needed):  
+→ [docs/HOSTING-STRATEGY.md](docs/HOSTING-STRATEGY.md)
 
 ---
 
@@ -111,23 +122,24 @@ Any agent that runs on a Claude subscription can call this endpoint and fire its
 
 ```
 src/
-  app/          Next.js routes and dashboard UI
-  lib/          Core logic (collector, analyzer, scheduler, sender)
+  app/          Next.js App Router — dashboard UI and API routes
+  lib/          Core logic — collector, analyzer, scheduler, sender, DB
   utils/        Shared utilities
-test/           Automated test suite (Node built-in test runner)
-docs/           Deployment guide, hosting strategy, research notes
-scripts/        VM installer and operational helpers
+test/           Automated tests (Node built-in runner)
+docs/           Deployment guide, dev loop, research notes
+scripts/        VM installer
 examples/       Agent SDK integration example
 ```
 
 ---
 
-## Tests
+## Development commands
 
 ```bash
-npm test       # run test suite
-npm run lint   # ESLint
-npm run build  # production build check
+npm run dev      # dev server with demo mode on (localhost:3017)
+npm test         # run test suite
+npm run lint     # ESLint
+npm run build    # production build check
 ```
 
 ---
