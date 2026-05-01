@@ -36,7 +36,8 @@ function getLocalDateStr(isoTimestamp: string, timezone: string): string {
 
 export function peakDetector(
   snapshots: ParsedSnapshot[],
-  timezone: string = "America/Los_Angeles"
+  timezone: string = "America/Los_Angeles",
+  windowHours: number = 4
 ): PeakDetectorResult | null {
   // Step 1: Filter to ok snapshots, sort by timestamp ascending
   const okSnapshots = snapshots
@@ -70,24 +71,23 @@ export function peakDetector(
     }
   }
 
-  // Step 5: Slide a 4-hour window across all 24 starting positions
+  // Step 5: Slide a variable-sized window across all 24 starting positions
   let maxSum = -Infinity;
   let bestStart = 0;
 
   for (let s = 0; s < 24; s++) {
-    const windowSum =
-      hourlyDelta[s % 24] +
-      hourlyDelta[(s + 1) % 24] +
-      hourlyDelta[(s + 2) % 24] +
-      hourlyDelta[(s + 3) % 24];
+    let windowSum = 0;
+    for (let offset = 0; offset < windowHours; offset++) {
+      windowSum += hourlyDelta[(s + offset) % 24];
+    }
 
     if (windowSum > maxSum) {
       maxSum = windowSum;
       bestStart = s;
     } else if (windowSum === maxSum) {
       // Step 7: Tiebreak — midpoint closest to noon (12) wins
-      const bestMid = (bestStart + 2) % 24;
-      const candMid = (s + 2) % 24;
+      const bestMid = (bestStart + Math.floor(windowHours / 2)) % 24;
+      const candMid = (s + Math.floor(windowHours / 2)) % 24;
       const bestDist = Math.abs(bestMid - 12);
       const candDist = Math.abs(candMid - 12);
 
@@ -100,10 +100,10 @@ export function peakDetector(
     }
   }
 
-  const midpoint = (bestStart + 2) % 24;
+  const midpoint = (bestStart + Math.floor(windowHours / 2)) % 24;
   const peakBlock: PeakBlock = {
     startHour: bestStart,
-    endHour: (bestStart + 4) % 24,
+    endHour: (bestStart + windowHours) % 24,
     sumDelta: maxSum,
     midpoint,
   };
