@@ -14,6 +14,12 @@ Right now the tool is built for cloud deployment with cookie-based monitoring. T
 
 This would make the tool usable for anyone who can run `npm install`, without needing a GCP VM or manual cookie extraction.
 
+### Synchronized local & cloud monitoring
+
+Combine the local npm package and the cloud-hosted claude.ai monitor to create a synchronized system for a complete data set. That way, while the user is using Claude Code, they get a much more granular monitoring using the local NPM package. When they're not using Claude Code, their usage is still reliably monitored in the background by the cloud system.
+
+*Caveat: This should only be implemented if the sliding formula needs more data to make a better estimation.*
+
 ### Delta-only snapshot storage
 
 Currently every poll writes the full raw JSON payload to the database. With frequent polling this adds up fast — the DB grows quickly and most of the data is redundant.
@@ -26,6 +32,11 @@ Switch to storing only delta increases, as granular as possible:
 - Keep the raw JSON for the most recent snapshot only (for debugging)
 
 This reduces storage significantly and makes the peak detection query simpler and faster.
+
+### Minute-level granular sliding window
+
+Revise the formula to make a more granular sliding window that calculates down to the minute instead of down to the hour.
+*Note: Research best practices for high-frequency sliding window algorithms to find the best and most optimal solution.*
 
 ---
 
@@ -46,3 +57,7 @@ Implement the same quota-window optimization for ChatGPT Plus/Pro and Codex user
 ### Agent workflow scheduling
 
 More ambitious: the agent monitors current utilization in real time and, based on time of day and the user's peak hours, delays high-cost tasks (multi-turn research, large tool call chains) until immediately after the next anchor send when quota is freshest. Low-cost tasks run in the meantime. User-overrideable for anything urgent. When a user offloads a task to a background agent, a few hours' delay rarely matters to them — but to their quota, it can make a significant difference.
+
+### Claude scheduled tasks/routines optimization
+
+Add support for Claude's scheduled tasks and routines to automatically reorder and reschedule them based on usage. You can seamlessly control and reschedule these directly via the Claude Code CLI.
