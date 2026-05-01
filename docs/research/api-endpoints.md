@@ -194,8 +194,55 @@ anthropic-ratelimit-unified-fallback-percentage:   <0.0–1.0>
 
 - Claude Code calls `/api/oauth/usage` infrequently (likely on startup + periodically) and **caches in process memory.**
 - `/usage` slash command and the statusline both read from this cache, not live API.
-- Statusline receives data via stdin: `data.rate_limits.five_hour.used_percentage` (see `~/.claude/hooks/gsd-statusline.js` lines 248-261).
 - **We cannot use any of this on a standalone server** — there's no Claude Code process running.
+
+### Statusline stdin payload
+
+On every prompt Claude Code invokes the statusline script and passes a JSON object via stdin. The relevant shape:
+
+```json
+{
+  "model": { "display_name": "<model name>" },
+  "session_id": "<uuid>",
+  "workspace": { "current_dir": "<path>" },
+  "context_window": {
+    "total_tokens": <int>,
+    "remaining_percentage": <0-100>
+  },
+  "rate_limits": {
+    "five_hour": { "used_percentage": <0-100> },
+    "seven_day": { "used_percentage": <0-100> }
+  }
+}
+```
+
+The statusline reads `data.rate_limits.five_hour.used_percentage` and `data.rate_limits.seven_day.used_percentage` directly — no API call needed.
+
+### Context bridge file (existing pattern)
+
+Claude Code already writes a bridge file to disk on every prompt for the context monitor hook:
+
+```
+$TEMP/claude-ctx-{session_id}.json
+```
+
+Contents:
+```json
+{
+  "session_id": "<uuid>",
+  "remaining_percentage": <0-100>,
+  "used_pct": <0-100>,
+  "timestamp": <unix seconds>
+}
+```
+
+We considered extending this pattern to also write rate limit data to a `claude-usage-{session}.json` bridge file, so a local server could read it with zero API calls. **Not viable for this project** — the server runs on GCP, not the user's local machine.
+
+### Community workaround: `~/.claude/usage-exact.json`
+
+Some open-source statusline tools (e.g. `claude-code-statusline`) use a shared cache file at `~/.claude/usage-exact.json`. Multiple Claude Code windows on the same machine share it — only the first window past the timeout actually calls the API; the rest read from cache. Recommended polling interval: 300s minimum.
+
+This file does **not** exist by default; it's written by third-party statusline scripts. Not useful for a remote server deployment.
 
 ---
 
