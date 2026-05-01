@@ -255,7 +255,7 @@ sed: -e expression #1, char 3251: unterminated `s' command
 echo -n 'COOKIE_VALUE' | base64
 
 # VM
-echo 'BASE64_BLOB' | base64 -d | sudo tee /etc/claude-sender.env > /dev/null
+echo 'BASE64_BLOB' | base64 -d | sudo tee /etc/claude-usage-optimizer.env > /dev/null
 ```
 
 **Future fix (UI):** Add a "Refresh Auth" button on the dashboard that re-runs the setup wizard's auth fields without losing the rest of the config.
