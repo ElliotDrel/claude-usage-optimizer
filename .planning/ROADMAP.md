@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Dashboard Control Surface** - Add Optimal Schedule card, Overrides form, Send History panel, Send Now button, Pause toggle, Tomorrow's Schedule preview. *(Completed 2026-04-22)* ✓
 - [x] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`. *(Completed 2026-04-23)*
 - [x] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes. *(Completed 2026-04-28)*
-- [ ] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture.
+- [x] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture. *(Completed 2026-05-01)*
 
 ## Phase Details
 
@@ -149,7 +149,7 @@ Plans:
   2. `npm test` runs the full tracker suite including the new modules, with zero failures.
   3. A documented manual verification procedure (in `README.md` or a dedicated doc) walks through: seed 7 days of synthetic snapshots → start app → observe dashboard renders peak card → pin override to fire in 2 min → observe `send_log` row appears → success.
   4. Running the documented procedure end-to-end takes under 10 minutes for a fresh developer.
-**Plans**: TBD
+**Plans**: 0 (tests written in-phase during Phases 2–4; QUAL-02 delivered as docs/DEV-LOOP.md)
 
 ## Progress
 
@@ -163,9 +163,9 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 3. Sender Module | 3/3 | Complete | 2026-04-20 |
 | 4. Scheduler Wiring | 2/2 | Complete | 2026-04-21 |
 | 5. Dashboard Control Surface | 3/3 | Complete | 2026-04-22 |
-| 6. VM Deployment & Hardening | 0/4 | Planned | — |
-| 7. Installer & Onboarding | 0/TBD | Not started | — |
-| 8. Quality & Acceptance | 0/TBD | Not started | — |
+| 6. VM Deployment & Hardening | 4/4 | Complete | 2026-04-23 |
+| 7. Installer & Onboarding | 3/3 | Complete | 2026-04-28 |
+| 8. Quality & Acceptance | 0/0 | Complete | 2026-05-01 |
 
 ---
 
