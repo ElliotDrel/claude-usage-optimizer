@@ -21,11 +21,14 @@ export async function execFileNoThrow(
     });
     return { status: 0, stdout, stderr };
   } catch (err: unknown) {
-    const e = err as { code?: number; stdout?: string; stderr?: string };
-    return {
-      status: typeof e.code === "number" ? e.code : 1,
-      stdout: e.stdout ?? "",
-      stderr: e.stderr ?? String(err),
-    };
+    if (typeof err === "object" && err !== null) {
+      const e = err as Record<string, unknown>;
+      return {
+        status: typeof e["code"] === "number" ? e["code"] : 1,
+        stdout: typeof e["stdout"] === "string" ? e["stdout"] : "",
+        stderr: typeof e["stderr"] === "string" ? e["stderr"] : String(err),
+      };
+    }
+    return { status: 1, stdout: "", stderr: String(err) };
   }
 }

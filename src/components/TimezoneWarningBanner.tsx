@@ -33,6 +33,7 @@ export function TimezoneWarningBanner({ data }: { data: DashboardData | null }) 
     // Treat absent or raw numeric stored values as a mismatch; prompt user
     // to overwrite with the browser's IANA timezone name (CR-01, WR-01).
     if (!storedTimezone || isRawNumericOffset(storedTimezone)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVisible(true);
       return;
     }

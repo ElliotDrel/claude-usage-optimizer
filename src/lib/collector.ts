@@ -110,10 +110,6 @@ export function computePollingDelta(
   return computeUsageDelta(prevUtil, currUtil, prevResetAt, currResetAt);
 }
 
-function centsToDollars(value: number | null): number | null {
-  if (value == null) return null;
-  return Math.round(value) / 100;
-}
 
 function parseJson(rawBody: string): Record<string, unknown> | null {
   try {
@@ -279,7 +275,6 @@ export class UsageCollector {
 
       const normalized = normalizeUsagePayload(payload);
       const fiveHour = normalized.windows.find((w) => w.key === "five_hour");
-      const sevenDay = normalized.windows.find((w) => w.key === "seven_day");
 
       let rawJson: string;
       if (this.config.authMode === "cookie" && this.config.orgId) {

@@ -8,7 +8,7 @@
  * D-07: Webhook URL is opt-in; if absent or empty, silently skip.
  */
 
-import type { Config } from "./config";
+import { getConfig } from "./config";
 import { getDb } from "./db";
 
 /**
@@ -26,9 +26,7 @@ export async function postDiscordNotification(
   description: string,
   timestamp?: Date
 ): Promise<void> {
-  // Read webhook URL from app_meta (opt-in)
-  // Create minimal Config object for getDb — only dataDir is used to find the DB
-  const db = getDb({ dataDir: process.env.DATA_DIR ?? "", dbPath: "" } as any);
+  const db = getDb(getConfig());
   const row = db
     .prepare("SELECT value FROM app_meta WHERE key = ?")
     .get("notification_webhook_url") as { value: string } | undefined;

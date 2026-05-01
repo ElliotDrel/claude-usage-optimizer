@@ -11,7 +11,6 @@
 import { promises as fs } from "node:fs";
 import { createReadStream, createWriteStream } from "node:fs";
 import zlib from "node:zlib";
-import type Database from "better-sqlite3";
 import { Storage } from "@google-cloud/storage";
 import { backupDatabase } from "./db";
 import { getConfig } from "./config";
@@ -25,7 +24,7 @@ import { getConfig } from "./config";
  *
  * Any step failure logs and continues (D-02, non-fatal).
  */
-async function backupToGcs(db: Database.Database): Promise<void> {
+async function backupToGcs(): Promise<void> {
   const config = getConfig();
   const now = new Date();
   const timestamp = now.toISOString().replace(/[:.]/g, "");
@@ -107,9 +106,9 @@ function scheduleDaily(utcTime: string, job: () => Promise<void>): NodeJS.Timeou
  *
  * @param db — open better-sqlite3 database handle
  */
-export function startBackupJob(db: Database.Database): { stop: () => void } {
+export function startBackupJob(): { stop: () => void } {
   const interval = scheduleDaily("04:15", async () => {
-    await backupToGcs(db);
+    await backupToGcs();
   });
 
   return { stop: () => clearInterval(interval) };

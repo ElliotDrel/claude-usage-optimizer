@@ -126,8 +126,6 @@ export function ScheduleOverridesPanel({
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!data?.scheduleData) return null;
-
   const handleSaveField = useCallback(
     async (key: string, value: string) => {
       const response = await fetch("/api/app-meta", {
@@ -140,6 +138,8 @@ export function ScheduleOverridesPanel({
     },
     [onRefetch]
   );
+
+  if (!data?.scheduleData) return null;
 
   // Extract current values from data (these come from app_meta, passed via DashboardData)
   const overrideStartTime = data.scheduleData?.overrideStartTime ?? "";

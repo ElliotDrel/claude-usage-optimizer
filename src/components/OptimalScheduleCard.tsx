@@ -28,12 +28,10 @@ function FireTimeRow({
   fire,
   isAnchor,
   isNextFire,
-  now,
 }: {
   fire: FireTime;
   isAnchor: boolean;
   isNextFire: boolean;
-  now: number;
 }) {
   return (
     <div
@@ -230,7 +228,6 @@ export function OptimalScheduleCard({ data }: { data: DashboardData | null }) {
             fire={fire}
             isAnchor={fire.isAnchor}
             isNextFire={activeTab === "today" && idx === getNextFireIndex(scheduleFires, now)}
-            now={now}
           />
         ))}
       </div>

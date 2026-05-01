@@ -2,7 +2,6 @@ import type { CollectorState } from "./collector";
 import { computeUsageDelta } from "./usage-window";
 import { type ParsedSnapshot } from "./queries";
 import type { FireTime } from "./schedule";
-import type { SendLogRow } from "./db";
 import { getAppMeta, querySendLog } from "./db";
 import { getConfig } from "./config";
 

@@ -27,7 +27,7 @@ export async function register() {
 
     let backupStop = () => {};
     if (shouldStartScheduler) {
-      const backup = startBackupJob(db);
+      const backup = startBackupJob();
       backupStop = backup.stop;
       console.log("[instrumentation] Backup job started");
     }
