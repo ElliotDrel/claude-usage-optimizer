@@ -304,24 +304,14 @@ async function runTick(
   nowFn: () => Date,
   sendTimeoutMs?: number
 ): Promise<void> {
-  // Unconditionally write timestamp on every tick (stall detection depends on this)
-  writeMeta(db, "last_tick_at", nowFn().toISOString());
-
-  // --- Step 1: Pause check ---
-  const paused = readMeta(db, "paused", "false");
-  if (paused === "true") {
-    console.log("[scheduler] paused — skipping tick");
-    return;
-  }
-
   const now = nowFn();
 
-  // Check if more than 5 minutes since last tick (stall detection per D-06)
+  // Step 1: Stall detection — read BEFORE the unconditional write
   const lastTickAtStr = readMeta(db, "last_tick_at");
-  if (lastTickAtStr && lastTickAtStr !== now.toISOString()) {
+  if (lastTickAtStr) {
     const lastTick = new Date(lastTickAtStr);
     const elapsedSeconds = (now.getTime() - lastTick.getTime()) / 1000;
-    if (elapsedSeconds > 300) { // 5 minutes = 300 seconds
+    if (elapsedSeconds > 300) {
       console.error(`[scheduler] STALL DETECTED: ${elapsedSeconds}s since last tick`);
       void postDiscordNotification(
         "Scheduler Stall",
@@ -329,6 +319,15 @@ async function runTick(
         now
       );
     }
+  }
+  // Write current timestamp after the check
+  writeMeta(db, "last_tick_at", now.toISOString());
+
+  // --- Step 1: Pause check ---
+  const paused = readMeta(db, "paused", "false");
+  if (paused === "true") {
+    console.log("[scheduler] paused — skipping tick");
+    return;
   }
 
   // --- Step 2: Recompute check ---
@@ -339,10 +338,8 @@ async function runTick(
     try {
       // Read timezone and schedule options from app_meta
       const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
-      const anchorOffsetMinutes = parseInt(
-        readMeta(db, "anchor_offset_minutes", "5"),
-        10
-      );
+      const rawOffset = parseInt(readMeta(db, "anchor_offset_minutes", "5"), 10);
+      const anchorOffsetMinutes = Number.isNaN(rawOffset) || rawOffset < 0 ? 5 : rawOffset;
       const defaultSeedTime = readMeta(db, "default_seed_time", "05:05");
       const overrideStartTime = readMeta(db, "schedule_override_start_time", "") || null;
 
@@ -351,7 +348,8 @@ async function runTick(
       const parsed = parseSnapshots(rows);
 
       // Detect peak
-      const peakWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+      const rawWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+      const peakWindowHours = Number.isNaN(rawWindowHours) || rawWindowHours < 1 ? 4 : rawWindowHours;
       const peakResult = peakDetector(parsed, timezone, peakWindowHours);
       const peakBlock = peakResult?.peakBlock ?? null;
 
@@ -521,10 +519,8 @@ export function recomputeSchedule(
   try {
     // Read timezone and schedule options from app_meta
     const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
-    const anchorOffsetMinutes = parseInt(
-      readMeta(db, "anchor_offset_minutes", "5"),
-      10
-    );
+    const rawOffset = parseInt(readMeta(db, "anchor_offset_minutes", "5"), 10);
+    const anchorOffsetMinutes = Number.isNaN(rawOffset) || rawOffset < 0 ? 5 : rawOffset;
     const defaultSeedTime = readMeta(db, "default_seed_time", "05:05");
     const overrideStartTime = readMeta(db, "schedule_override_start_time", "") || null;
 
@@ -533,7 +529,8 @@ export function recomputeSchedule(
     const parsed = parseSnapshots(rows);
 
     // Detect peak
-    const peakWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+    const rawWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+    const peakWindowHours = Number.isNaN(rawWindowHours) || rawWindowHours < 1 ? 4 : rawWindowHours;
     const peakResult = peakDetector(parsed, timezone, peakWindowHours);
     const peakBlock = peakResult?.peakBlock ?? null;
 
@@ -555,11 +552,16 @@ export function recomputeSchedule(
       };
     });
 
+    // Preserve fires that have already executed
+    const existingDone = parseDoneJson(readMeta(db, "schedule_fires_done"));
+    const newTimestamps = new Set(scheduledFires.map((f) => f.timestamp));
+    const retainedDone = existingDone.filter((ts) => newTimestamps.has(ts));
+
     // Write all 4 app_meta keys atomically (individual prepared statements)
     writeMeta(db, "schedule_fires", JSON.stringify(scheduledFires));
     writeMeta(db, "peak_block", peakBlock ? JSON.stringify(peakBlock) : "");
     writeMeta(db, "schedule_generated_at", now.toISOString());
-    writeMeta(db, "schedule_fires_done", "[]"); // Reset done list for new day
+    writeMeta(db, "schedule_fires_done", JSON.stringify(retainedDone));
 
     console.log(
       `[scheduler] schedule recomputed: ${scheduledFires.length} fires, ` +
