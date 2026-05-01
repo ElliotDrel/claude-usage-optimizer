@@ -1,7 +1,9 @@
 {
   "name": "claude-usage-tracker",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "license": "UNLICENSED",
+  "description": "Local-first dashboard and scheduler for observing Claude usage and optimizing send timing.",
   "scripts": {
     "dev": "next dev --hostname localhost --port 3017",
     "build": "next build",

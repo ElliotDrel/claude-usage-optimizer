@@ -1,26 +1,53 @@
 # Claude Usage Optimizer
 
-Umbrella repo for tools that optimize Claude Code usage against the 5-hour rolling window.
+Claude Usage Optimizer is a local-first Next.js app that watches Claude usage, computes an optimal daily send schedule from observed peak patterns, and can trigger sends through the Claude CLI so two consecutive 5-hour windows cover your peak period.
 
-Two subprojects live here side-by-side. They are independent today; the long-term plan is to merge them so the tracker can auto-trigger the sender to shift window start times.
+## What it does
 
-## Subprojects
+- Tracks Claude usage over time in a local SQLite database
+- Computes a recommended send schedule from historical usage patterns
+- Exposes a localhost-only dashboard for setup, monitoring, and manual control
+- Supports optional nightly Google Cloud Storage backups
+- Ships with an Ubuntu installer for a low-cost GCP VM deployment
 
-### `Claude Message Sender/`
-Python scripts that send a message to Claude to intentionally start (or shift) a 5-hour usage window.
+## Security model
 
-- `claude_message_send_with_browser.py` — browser-driven send
-- `claude_message_send_with_CC_CLI.py` — sends via the Claude Code CLI
-- `test_send_now.py` — manual trigger for testing
-- `requirements.txt` — Python deps
+- The production dashboard is intended to stay bound to `127.0.0.1:3018`
+- Secrets live outside the repo in environment files
+- Local usage data under `data/` is gitignored
 
-### `Claude Usage Tracker/claude-usage-tracker/`
-Next.js dashboard that tracks Claude.ai usage per-cookie with adaptive polling.
+## Repo layout
 
-- Next.js + TypeScript dashboard
-- Local SQLite usage data under `data/` (gitignored)
-- See the subproject's own docs / `package.json` for run instructions
+- `src/` - Next.js app, API routes, scheduler, sender, and analysis logic
+- `scripts/` - install and operational helper scripts
+- `test/` - automated test suite
+- `docs/` - deployment notes, hosting guide, and research docs
 
-## Roadmap
+## Quick start
 
-Merge the two so the tracker detects window boundaries and the sender adjusts them automatically.
+```bash
+npm ci
+npm run dev
+```
+
+Open `http://localhost:3017`.
+
+## Production start
+
+```bash
+npm run build
+npm run start:prod
+```
+
+The production server binds to `127.0.0.1:3018`.
+
+## Tests
+
+```bash
+npm test
+npm run lint
+```
+
+## Deployment
+
+For the current VM flow, start with [docs/HOSTING-STRATEGY.md](docs/HOSTING-STRATEGY.md).
