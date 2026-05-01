@@ -101,10 +101,8 @@ function scheduleDaily(utcTime: string, job: () => Promise<void>): NodeJS.Timeou
 /**
  * startBackupJob — register the daily GCS backup job.
  *
- * Returns { stop } for shutdown integration into instrumentation.ts (same pattern as scheduler).
- * Runs at 04:15 UTC daily per D-01.
- *
- * @param db — open better-sqlite3 database handle
+ * Returns { stop } for shutdown integration into instrumentation.ts.
+ * Runs at 04:15 UTC daily.
  */
 export function startBackupJob(): { stop: () => void } {
   const interval = scheduleDaily("04:15", async () => {
