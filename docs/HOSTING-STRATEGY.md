@@ -180,7 +180,7 @@ The first browser visit redirects you to a setup form with four fields:
 
 Paste this into the **Session Cookie** field.
 
-Click **Complete Setup**. The wizard writes secrets to `/etc/claude-sender.env` and restarts the service. You'll be redirected to the dashboard.
+Click **Complete Setup**. The wizard writes secrets to `/etc/claude-usage-optimizer.env` and restarts the service. You'll be redirected to the dashboard.
 
 ---
 
@@ -211,7 +211,7 @@ Backups run automatically every night at 04:15 UTC if you provide a bucket name.
 Then set the env var on the VM:
 
 ```bash
-sudo sed -i 's|^GCS_BACKUP_BUCKET=.*|GCS_BACKUP_BUCKET=YOUR_BUCKET_NAME|' /etc/claude-sender.env
+sudo sed -i 's|^GCS_BACKUP_BUCKET=.*|GCS_BACKUP_BUCKET=YOUR_BUCKET_NAME|' /etc/claude-usage-optimizer.env
 sudo systemctl restart claude-tracker
 ```
 
@@ -231,7 +231,7 @@ gcloud storage buckets update gs://YOUR_BUCKET_NAME --lifecycle-file=/tmp/lifecy
 Get a Discord webhook URL: server → channel → Edit Channel → Integrations → Webhooks → New Webhook → copy URL.
 
 ```bash
-sudo sh -c 'echo "DISCORD_WEBHOOK_URL=YOUR_WEBHOOK_URL" >> /etc/claude-sender.env'
+sudo sh -c 'echo "DISCORD_WEBHOOK_URL=YOUR_WEBHOOK_URL" >> /etc/claude-usage-optimizer.env'
 sudo systemctl restart claude-tracker
 ```
 
@@ -251,8 +251,8 @@ echo -n 'YOUR_COOKIE_VALUE_HERE' | base64
 # Then on the VM:
 sudo bash -c 'COOKIE_B64="PASTE_BASE64_HERE"; \
   COOKIE=$(echo "$COOKIE_B64" | base64 -d); \
-  sed -i "/^CLAUDE_SESSION_COOKIE=/d" /etc/claude-sender.env; \
-  echo "CLAUDE_SESSION_COOKIE=$COOKIE" >> /etc/claude-sender.env; \
+  sed -i "/^CLAUDE_SESSION_COOKIE=/d" /etc/claude-usage-optimizer.env; \
+  echo "CLAUDE_SESSION_COOKIE=$COOKIE" >> /etc/claude-usage-optimizer.env; \
   systemctl restart claude-tracker'
 ```
 

@@ -22,7 +22,7 @@ trap 'echo ""; echo "ERROR: Installer failed at line $LINENO. Review the output 
 REPO_URL="https://github.com/elliotdrel/claude-usage-optimizer.git"
 REPO_DIR="/opt/claude-usage-optimizer"
 SERVICE_USER="claude-tracker"
-ENV_FILE="/etc/claude-sender.env"
+ENV_FILE="/etc/claude-usage-optimizer.env"
 SYSTEMD_UNIT="/etc/systemd/system/claude-tracker.service"
 SUDOERS_FILE="/etc/sudoers.d/claude-tracker"
 DB_PATH="${REPO_DIR}/data/usage.db"
@@ -177,7 +177,7 @@ echo "  Verified: setup_complete='false' confirmed in database."
 echo "[12/14] Installing sudoers entry..."
 # Narrowly scoped: only write-env.sh, no wildcards, no ALL
 cat > "${SUDOERS_FILE}" << 'SUDOEOF'
-# Claude Usage Optimizer: allow service user to write /etc/claude-sender.env via helper
+# Claude Usage Optimizer: allow service user to write /etc/claude-usage-optimizer.env via helper
 claude-tracker ALL=(ALL) NOPASSWD: /opt/claude-usage-optimizer/scripts/write-env.sh
 SUDOEOF
 chmod 440 "${SUDOERS_FILE}"
