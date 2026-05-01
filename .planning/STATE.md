@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** The scheduled anchor send fires at the midpoint of the detected 4-hour peak block, guaranteeing two consecutive 5-hour windows span the user's peak usage period.
-**Current focus:** v1.0 complete — all 8 phases shipped
+**Current focus:** v1.0 complete — all 9 phases shipped, both integration gaps closed
 
 ## Current Position
 
-Phase: 8 of 8 (Quality & Acceptance)
+Phase: 9 of 9 (Integration Gap Closure)
 Plan: Complete
-Status: v1.0 shipped
+Status: v1.0 shipped + integration gaps closed
 Last activity: 2026-05-01
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
