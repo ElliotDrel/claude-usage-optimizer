@@ -233,7 +233,7 @@ git commit -m "fix: set executable bit on write-env.sh"
 
 **Diagnosis:** The app expects IANA format like `America/New_York`. Bare city names break `Intl.DateTimeFormat` and quietly produce wrong scheduling.
 
-**Fix (manual):** Edit `/etc/claude-sender.env` to use `user_timezone=America/New_York`.
+**Fix (manual):** Edit `/etc/claude-usage-optimizer.env` to set `user_timezone=America/New_York`.
 
 **Future fix (UI):** Setup wizard should validate against the IANA timezone list and reject bare names. A datalist of common IANA values would help.
 
