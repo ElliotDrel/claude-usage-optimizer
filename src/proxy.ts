@@ -51,3 +51,5 @@ export const config = {
     "/((?!_next|static|favicon\\.ico).*)",
   ],
 };
+
+export { proxy as setupGate };
