@@ -2,13 +2,29 @@
 
 ---
 
-## What this does
+## Summary
 
-Anchoring a lightweight daily send at the midpoint of the user's detected 4-hour peak block guarantees two consecutive 5-hour quota windows span that peak, doubling usable agent-hours per subscription dollar.
+**The problem**
+- Users who run autonomous agents alongside their daily Anthropic product usage share the same quota window across both
+- The combined load means rate limits hit more frequently, interrupting both interactive sessions and in-progress agent tasks
 
-There's a second effect worth naming: users who know their quota is being managed are willing to delegate more tasks to the agent. Work they'd previously done manually (to avoid burning their window) becomes automatable. Better quota utilization increases agent adoption.
+**What this optimizer does**
+- Detects each user's 4-hour peak block from usage history
+- Fires a lightweight anchor send at the peak midpoint, guaranteeing two consecutive 5-hour windows cover that peak
+- Already accounts for Anthropic's peak-hour multiplier through delta tracking — no explicit config needed
+- Users who trust their quota is being managed delegate more tasks to the agent, increasing adoption naturally
 
-**Future optimizations:** [Smart schedule shifting](#future-optimization-a-smart-schedule-shifting) · [Agent workflow scheduling](#future-optimization-b-agent-workflow-scheduling)
+**Integration options**
+1. **Response header piggyback (recommended)** — a few lines in the existing Agent SDK message handler; no new auth, no infrastructure, no user-facing changes
+2. **Full implementation** — dashboard, customizable schedule, 24/7 session cookie tracking; requires a persistent per-user backend
+
+---
+
+## How it works
+
+The peak detector slides a 4-hour window across a histogram of hourly utilization deltas built from usage history. The window position with the highest cumulative delta becomes the peak block. The anchor send fires at that block's midpoint, resetting the quota window at the exact moment it's needed most. Because the optimizer tracks deltas rather than raw utilization, Anthropic's peak-hour multiplier is baked in automatically: higher multipliers register as larger deltas, so those hours naturally score lower and get scheduled around without any explicit configuration.
+
+The secondary payoff: users who trust their quota is being actively managed delegate more to the agent. Tasks they'd otherwise run manually to conserve their window become automatable, which increases agent utilization on top of the quota gains.
 
 ---
 
@@ -18,7 +34,7 @@ There's a second effect worth naming: users who know their quota is being manage
 
 **Effort:** hours. **Risk:** none. **Requires:** nothing new from the user.
 
-Every `/v1/messages` response from `api.anthropic.com` already includes rate limit headers:
+Every `/v1/messages` response already includes the utilization data the optimizer needs:
 
 ```
 anthropic-ratelimit-unified-5h-utilization:   0.42
@@ -26,11 +42,9 @@ anthropic-ratelimit-unified-5h-reset:         1746392400
 anthropic-ratelimit-unified-7d-utilization:   0.18
 ```
 
-The agent already makes these calls. The only change is reading those headers on each response and forwarding the utilization values to the optimizer. If utilization didn't change since the last write, skip it.
+Read those headers on each response and forward the values to the optimizer. If utilization didn't change, skip the write. That's the full integration — the optimizer handles peak detection, schedule generation, and anchor sends from there.
 
-This gives per-message usage tracking with no extra API calls, no new auth, and no change to user behavior.
-
-**Caveat:** headers are only present when the agent is making requests. During idle periods the optimizer falls back to its existing Bearer token poll, capped at once per hour to avoid the [known 1-hour rate limit lockout](https://github.com/anthropics/claude-code/issues/31637).
+**Caveat:** headers are only present during active agent requests. During idle periods the optimizer falls back to its Bearer token poll, capped at once per hour to avoid the [known 1-hour rate limit lockout](https://github.com/anthropics/claude-code/issues/31637).
 
 **Implementation sketch:**
 
@@ -50,20 +64,36 @@ if (util5h !== lastKnownUtilization) {
 
 ---
 
-### Options 2 and 3 — Per-user sidecar or native embedding
+### Option 2 — Full implementation
 
-Full optimizer instances per user (Docker sidecar, systemd service, or embedded module) give users a dashboard and tighter scheduling control. The complexity of managing per-user server processes is real, and most users won't ask for it unless they're already hitting limits and want to understand why. Option 1 covers the majority of the value. Options 2 and 3 are worth revisiting if demand appears.
+**Effort:** more. **Requires:** a persistent per-user backend.
+
+This is the complete version: a dedicated backend per user that polls the Claude.ai session cookie every ~5 minutes, giving the peak detector a full 24/7 usage picture rather than just agent-active periods. Users get a dashboard to view their usage history, see their detected peak block, and customize the time their anchor sends fire.
+
+**What this adds over Option 1:**
+- Continuous tracking via session cookie covers the user's full day, not just agent sessions
+- Dashboard gives users visibility into their quota usage and schedule
+- Customizable send times let users override the detected anchor if they want manual control
+
+**The cost:** each user needs a persistent backend with storage. This means provisioning infrastructure per user, managing session cookie refresh (cookies expire periodically and require manual re-entry), and handling health checks at scale. It's a meaningful increase in operational complexity.
+
+### My recommendation
+
+Start with Option 1. It requires no infrastructure changes, no new credentials from the user, and no disruption to existing workflows. The response headers capture enough signal to run peak detection well for any user actively using the agent.
+
+Come back to Option 2 when users are asking for visibility into their usage or want manual control over their schedule. That's the signal the operational overhead is worth it.
+
 
 ---
 
 ## Future Optimization A: Smart schedule shifting
 
-Anthropic's peak hours are publicly documented and apply a multiplier to rate limit consumption — the same workload that costs 30% of a window at 3am may cost 60% at 2pm. The user's peak block is already detected by the optimizer. A smarter scheduler combines both inputs: it places scheduled agent tasks in windows that are off-peak for both the user and Anthropic, ensuring automated work doesn't compete with interactive sessions or inflate its own quota cost. The goal is that the user's peak hours are reserved for the user, and agent tasks run when quota is cheapest.
+The next step is making this explicit: by incorporating the user's detected peak block, the scheduler can place agent tasks in windows that are confirmed off-peak for both user and Anthropic peak hours. This turns a side effect of delta tracking into a deliberate, inspectable constraint.
 
 ---
 
-## Future Optimization B: Agent workflow scheduling
+## Future Optimization B: Day-to-day usage pattern optimization
 
-If the agent tracks utilization state and estimates the quota cost of planned tasks, it can reorder its work queue to match. High-cost tasks (multi-turn research, large tool call chains) run immediately after an anchor send when quota is freshest. Low-cost tasks (status summaries, single-turn lookups) run in late-window or off-peak slots. Time-sensitive tasks always run immediately regardless of window state.
+This one is more ambitious. The agent monitors the user's current utilization percentage in real time and, based on the time of day and the user's detected peak hours, delays high-cost tasks until immediately after the next anchor send when quota is freshest. Rather than running a multi-turn research task at 80% utilization mid-peak, the agent queues it for the next fresh window and uses the remaining quota for low-cost work in the meantime.
 
-The optimizer's `/api/optimize` response already exposes the full fire schedule and next anchor time. The agent needs to decide, before starting a task, whether to proceed or queue it for a better window. This is where the optimizer graduates from a standalone tool to a scheduling primitive inside the agent runtime.
+The user can override this at any time if something is urgent. But in practice, when a user offloads a task to an agent — especially one running in the background — a delay of a few hours rarely matters to them. To their quota, it can make a significant difference.
