@@ -354,3 +354,60 @@ describe("peakDetector — tiebreaking", () => {
     );
   });
 });
+
+describe("peakDetector — variable window size (windowHours parameter)", () => {
+  it("peakDetector with non-default windowHours=5", () => {
+    // Build a fixture with distinct hourly usage: hours 10–14 have high activity
+    const snapshots: ParsedSnapshot[] = [
+      // Day 1
+      makeSnapshot({ timestamp: "2026-01-01T09:00:00Z", five_hour_utilization: 10, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T10:00:00Z", five_hour_utilization: 30, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T11:00:00Z", five_hour_utilization: 50, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T12:00:00Z", five_hour_utilization: 70, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T13:00:00Z", five_hour_utilization: 85, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T14:00:00Z", five_hour_utilization: 95, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-01T15:00:00Z", five_hour_utilization: 100, five_hour_resets_at: "2026-01-01T05:00:00Z" }),
+      // Day 2 (repeat pattern)
+      makeSnapshot({ timestamp: "2026-01-02T09:00:00Z", five_hour_utilization: 10, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T10:00:00Z", five_hour_utilization: 30, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T11:00:00Z", five_hour_utilization: 50, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T12:00:00Z", five_hour_utilization: 70, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T13:00:00Z", five_hour_utilization: 85, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T14:00:00Z", five_hour_utilization: 95, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-02T15:00:00Z", five_hour_utilization: 100, five_hour_resets_at: "2026-01-02T05:00:00Z" }),
+      // Day 3 (repeat pattern)
+      makeSnapshot({ timestamp: "2026-01-03T09:00:00Z", five_hour_utilization: 10, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T10:00:00Z", five_hour_utilization: 30, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T11:00:00Z", five_hour_utilization: 50, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T12:00:00Z", five_hour_utilization: 70, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T13:00:00Z", five_hour_utilization: 85, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T14:00:00Z", five_hour_utilization: 95, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+      makeSnapshot({ timestamp: "2026-01-03T15:00:00Z", five_hour_utilization: 100, five_hour_resets_at: "2026-01-03T05:00:00Z" }),
+    ];
+
+    // With windowHours=5, the peak 5-hour block should be 10–14 (start hour 10)
+    // Midpoint of a 5-hour block is Math.floor(5/2) = 2, so midpoint = (10 + 2) % 24 = 12
+    const result = peakDetector(snapshots, "UTC", 5);
+
+    if (result === null) {
+      throw new Error("Expected peakDetector to return a result with 3+ days of data");
+    }
+
+    const { peakBlock } = result;
+
+    // The peak should start at hour 10
+    if (peakBlock.startHour !== 10) {
+      throw new Error(`Expected startHour=10, got ${peakBlock.startHour}`);
+    }
+
+    // With windowHours=5, endHour should be (10 + 5) % 24 = 15
+    if (peakBlock.endHour !== 15) {
+      throw new Error(`Expected endHour=15, got ${peakBlock.endHour}`);
+    }
+
+    // Midpoint should be (10 + 2) % 24 = 12 (Math.floor(5/2) = 2)
+    if (peakBlock.midpoint !== 12) {
+      throw new Error(`Expected midpoint=12, got ${peakBlock.midpoint}`);
+    }
+  });
+});
