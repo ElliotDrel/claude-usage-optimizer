@@ -351,7 +351,8 @@ async function runTick(
       const parsed = parseSnapshots(rows);
 
       // Detect peak
-      const peakResult = peakDetector(parsed, timezone);
+      const peakWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+      const peakResult = peakDetector(parsed, timezone, peakWindowHours);
       const peakBlock = peakResult?.peakBlock ?? null;
 
       // Generate schedule
@@ -532,7 +533,8 @@ export function recomputeSchedule(
     const parsed = parseSnapshots(rows);
 
     // Detect peak
-    const peakResult = peakDetector(parsed, timezone);
+    const peakWindowHours = parseInt(readMeta(db, "peak_window_hours", "4"), 10);
+    const peakResult = peakDetector(parsed, timezone, peakWindowHours);
     const peakBlock = peakResult?.peakBlock ?? null;
 
     // Generate schedule
