@@ -50,8 +50,9 @@ apt-get install -y git curl sqlite3
 # ── Step 4: Provision 2 GB swap (idempotent) ─────────────────────────────────
 echo "[3/14] Checking swap..."
 if [ ! -f /swapfile ]; then
-  echo "  Creating 2 GB swap file..."
-  dd if=/dev/zero of=/swapfile bs=1G count=2 status=none
+  echo "  Creating 2 GB swap file (chunked to avoid OOM on 1 GB e2-micro)..."
+  # bs=1G count=2 fails with OOM-kill on 1 GB RAM VMs. Chunked allocation works.
+  dd if=/dev/zero of=/swapfile bs=128M count=16 status=none
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
