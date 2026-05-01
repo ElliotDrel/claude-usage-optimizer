@@ -34,6 +34,11 @@ function getLocalDateStr(isoTimestamp: string, timezone: string): string {
   }).format(new Date(isoTimestamp));
 }
 
+function circularDistFromNoon(mid: number): number {
+  const d = Math.abs(mid - 12);
+  return Math.min(d, 24 - d);
+}
+
 export function peakDetector(
   snapshots: ParsedSnapshot[],
   timezone: string = "America/Los_Angeles",
@@ -88,8 +93,8 @@ export function peakDetector(
       // Step 7: Tiebreak — midpoint closest to noon (12) wins
       const bestMid = (bestStart + Math.floor(windowHours / 2)) % 24;
       const candMid = (s + Math.floor(windowHours / 2)) % 24;
-      const bestDist = Math.abs(bestMid - 12);
-      const candDist = Math.abs(candMid - 12);
+      const bestDist = circularDistFromNoon(bestMid);
+      const candDist = circularDistFromNoon(candMid);
 
       if (candDist < bestDist) {
         bestStart = s;
