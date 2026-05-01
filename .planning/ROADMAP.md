@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: VM Deployment & Hardening** - Single `claude-tracker.service` systemd unit, `127.0.0.1:3018` bind, OAuth token auth, nightly GCS backup, failure notifications, rewritten `HOSTING-STRATEGY.md`. *(Completed 2026-04-23)*
 - [x] **Phase 7: Installer & Onboarding** - One-command `curl … | bash` bootstrap installer plus first-run web wizard so a non-technical user can reach a running app in under 30 minutes. *(Completed 2026-04-28)*
 - [x] **Phase 8: Quality & Acceptance** - Comprehensive unit-test coverage for the four new modules plus documented manual dev-loop verification against a synthetic 7-day fixture. *(Completed 2026-05-01)*
-- [ ] **Phase 9: Integration Gap Closure** - Mount Next.js setup gate middleware so first-run wizard activates on first browser visit; parameterize peakDetector to consume `peak_window_hours` from app_meta so user override takes effect.
+- [x] **Phase 9: Integration Gap Closure** - Mount Next.js setup gate middleware so first-run wizard activates on first browser visit; parameterize peakDetector to consume `peak_window_hours` from app_meta so user override takes effect. (2026-05-01)
 
 ## Phase Details
 
@@ -164,7 +164,7 @@ Plans:
   4. `scheduler.ts` reads `peak_window_hours` from `app_meta` and passes it to `peakDetector` on every recompute.
   5. Setting `peak_window_hours=5` in the Overrides panel causes the scheduler to use a 5-hour detection window on the next recompute.
   6. `peak-detector.test.ts` covers at least one test case with a non-default window size.
-**Plans**: TBD
+**Plans**: 2/2
 
 ## Progress
 
@@ -181,7 +181,7 @@ Phases execute in numeric order. With `parallelization=true`, phases 2 + 3 (both
 | 6. VM Deployment & Hardening | 4/4 | Complete | 2026-04-23 |
 | 7. Installer & Onboarding | 3/3 | Complete | 2026-04-28 |
 | 8. Quality & Acceptance | 0/0 | Complete | 2026-05-01 |
-| 9. Integration Gap Closure | TBD | Pending | — |
+| 9. Integration Gap Closure | 2/2 | Complete | 2026-05-01 |
 
 ---
 
