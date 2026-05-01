@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import os from "node:os";
+import path from "node:path";
 import type { Config } from "./config";
 import { insertSendLog, type SendLogRow } from "./db";
 import { postDiscordNotification } from "./notifier";
@@ -42,9 +43,12 @@ export async function send(
     const cwd = os.tmpdir();
 
     // T-03-04: Always use array form — never shell: true (prevents injection)
+    // claude CLI requires a writable HOME to store its config; service user has HOME=/nonexistent
+    const claudeHome = path.join(os.tmpdir(), "claude-home");
     const child = spawn("claude", ["-p", question, "--model", "haiku"], {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, HOME: claudeHome },
     });
 
     let stdout = "";
