@@ -373,11 +373,16 @@ async function runTick(
         };
       });
 
+      // Preserve fires that have already executed
+      const existingDone = parseDoneJson(readMeta(db, "schedule_fires_done"));
+      const newTimestamps = new Set(scheduledFires.map((f) => f.timestamp));
+      const retainedDone = existingDone.filter((ts) => newTimestamps.has(ts));
+
       // Write all 4 app_meta keys atomically (individual prepared statements)
       writeMeta(db, "schedule_fires", JSON.stringify(scheduledFires));
       writeMeta(db, "peak_block", peakBlock ? JSON.stringify(peakBlock) : "");
       writeMeta(db, "schedule_generated_at", now.toISOString());
-      writeMeta(db, "schedule_fires_done", "[]"); // Reset done list for new day
+      writeMeta(db, "schedule_fires_done", JSON.stringify(retainedDone));
 
       console.log(
         `[scheduler] schedule generated: ${scheduledFires.length} fires, ` +
