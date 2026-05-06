@@ -126,29 +126,34 @@ function parseDoneJson(raw: string): string[] {
 }
 
 /**
- * shouldRecomputeSchedule — returns true when UTC hour >= 3 AND
- * (lastGeneratedAt is empty OR date(lastGeneratedAt) is before today UTC).
- * Mitigates Pitfall 2 (date boundary crossing).
+ * shouldRecomputeSchedule — returns true when the user's local calendar date
+ * has advanced past the date the schedule was last generated.
+ *
+ * Uses the user's timezone so the recompute fires shortly after local
+ * midnight, ensuring all scheduled fires for the day are still in the future
+ * when the schedule is written. Comparing UTC dates caused the recompute to
+ * trigger at 3am UTC — which is 8pm PDT — by which point every fire for the
+ * local day had already expired.
  */
-function shouldRecomputeSchedule(nowFn: () => Date, lastGeneratedAt: string): boolean {
+function shouldRecomputeSchedule(
+  nowFn: () => Date,
+  lastGeneratedAt: string,
+  timezone: string
+): boolean {
   const now = nowFn();
-  const utcHour = now.getUTCHours();
-
-  // Too early — wait until 03:00 UTC
-  if (utcHour < 3) {
-    return false;
-  }
 
   // Never generated — recompute now
   if (!lastGeneratedAt) {
     return true;
   }
 
-  // Compare calendar dates in UTC (ISO YYYY-MM-DD prefix comparison)
-  const nowDateUtc = now.toISOString().split("T")[0];
-  const generatedDateUtc = new Date(lastGeneratedAt).toISOString().split("T")[0];
+  // Compare calendar dates in the user's local timezone so the recompute
+  // triggers just after local midnight rather than at 3am UTC.
+  const localFmt = new Intl.DateTimeFormat("en-CA", { timeZone: timezone });
+  const nowLocalDate = localFmt.format(now);
+  const generatedLocalDate = localFmt.format(new Date(lastGeneratedAt));
 
-  return nowDateUtc > generatedDateUtc;
+  return nowLocalDate > generatedLocalDate;
 }
 
 /**
@@ -332,12 +337,12 @@ async function runTick(
 
   // --- Step 2: Recompute check ---
   const lastGeneratedAt = readMeta(db, "schedule_generated_at", "");
-  if (shouldRecomputeSchedule(nowFn, lastGeneratedAt)) {
+  const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
+  if (shouldRecomputeSchedule(nowFn, lastGeneratedAt, timezone)) {
     console.log("[scheduler] recomputing schedule for today");
 
     try {
       // Read timezone and schedule options from app_meta
-      const timezone = readMeta(db, "user_timezone", "America/Los_Angeles");
       const rawOffset = parseInt(readMeta(db, "anchor_offset_minutes", "5"), 10);
       const anchorOffsetMinutes = Number.isNaN(rawOffset) || rawOffset < 0 ? 5 : rawOffset;
       const defaultSeedTime = readMeta(db, "default_seed_time", "05:05");
@@ -398,10 +403,22 @@ async function runTick(
   // --- Step 3: Fire execution ---
   const fires = parseFiresJson(readMeta(db, "schedule_fires"));
   const firesDone = parseDoneJson(readMeta(db, "schedule_fires_done"));
+  const LATE_THRESHOLD_MS = 15 * 60 * 1000; // skip fires missed by more than 15 min
 
   for (const fire of fires) {
     const fireDate = new Date(fire.timestamp);
-    const isDue = fireDate <= now && !firesDone.includes(fire.timestamp);
+    const isPending = !firesDone.includes(fire.timestamp);
+    const isDue = fireDate <= now && isPending;
+    const isTooLate = now.getTime() - fireDate.getTime() > LATE_THRESHOLD_MS;
+
+    if (isDue && isTooLate) {
+      // Mark as done without firing — avoids catch-up spam when schedule was
+      // generated late or server was restarted mid-day.
+      firesDone.push(fire.timestamp);
+      writeMeta(db, "schedule_fires_done", JSON.stringify(firesDone));
+      console.log(`[scheduler] skipping stale fire at ${fire.timestamp} (${Math.round((now.getTime() - fireDate.getTime()) / 60000)}m late)`);
+      continue;
+    }
 
     if (isDue) {
       try {
