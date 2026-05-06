@@ -27,7 +27,8 @@
     "startup:restart": "powershell -ExecutionPolicy Bypass -File .\\scripts\\restart-startup.ps1",
     "startup:uninstall": "powershell -ExecutionPolicy Bypass -File .\\scripts\\uninstall-startup.ps1",
     "lint": "eslint",
-    "test": "tsx --test --test-force-exit test/*.test.ts"
+    "test": "tsx --test --test-force-exit test/*.test.ts",
+    "deploy": "git push origin main && gcloud compute ssh claude-optimizer --zone=us-central1-a --command=\"sudo bash /opt/deploy.sh\""
   },
   "dependencies": {
     "@google-cloud/storage": "^7.10.0",
